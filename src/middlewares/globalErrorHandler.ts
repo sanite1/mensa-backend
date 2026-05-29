@@ -8,15 +8,12 @@ export function globalErrorHandler(
   res: Response,
   _next: NextFunction,
 ): void {
-  if (err instanceof ApiError && err.isOperational) {
-    logger.warn(`[${err.code}] ${err.message}`, { details: err.details })
+  if (err instanceof ApiError) {
+    logger.warn(`[${err.statusCode}] ${err.message}`, { details: err.details })
     res.status(err.statusCode).json({
-      success: false,
-      error: {
-        code: err.code,
-        message: err.message,
-        ...(err.details ? { details: err.details } : {}),
-      },
+      statusCode: err.statusCode,
+      message: err.message,
+      ...(err.details ? { details: err.details } : {}),
     })
     return
   }
@@ -24,10 +21,7 @@ export function globalErrorHandler(
   // Unknown / programmer errors — don't leak internals
   logger.error('Unhandled error', err)
   res.status(500).json({
-    success: false,
-    error: {
-      code: 'INTERNAL_ERROR',
-      message: 'An unexpected error occurred.',
-    },
+    statusCode: 500,
+    message: 'An unexpected error occurred.',
   })
 }

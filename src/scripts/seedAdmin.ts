@@ -1,9 +1,12 @@
 import 'dotenv/config'
 import mongoose from 'mongoose'
 import bcrypt from 'bcrypt'
+import { User } from '../models/User'
 
-// Seed script: creates the initial admin user from env vars.
-// Run with: npx ts-node src/scripts/seedAdmin.ts
+// Seed script: creates the initial admin user from env vars, or resets the
+// existing admin's password + name to match .env. Safe to re-run — the
+// stored password hash is always brought in sync with SEED_ADMIN_PASSWORD.
+// Run with: npm run seed:admin
 
 async function seed() {
   const uri = process.env.MONGO_URI
@@ -18,18 +21,32 @@ async function seed() {
 
   await mongoose.connect(uri)
   const hash = await bcrypt.hash(password, 12)
+  const normalisedEmail = email.toLowerCase().trim()
 
-  // Dynamic import so the model is available after DB connects
-  const { User } = await import('../models/User')
-  const existing = await User.findOne({ email })
+  const existing = await User.findOne({ email: normalisedEmail }).select('+passwordHash')
+
   if (existing) {
-    console.log('Admin already exists:', email)
+    existing.passwordHash = hash
+    existing.name = name
+    existing.role = 'admin'
+    existing.refreshTokenHash = null
+    await existing.save()
+    console.log('Admin password reset:', normalisedEmail)
   } else {
-    await User.create({ email, passwordHash: hash, name, phone: '+2340000000000', role: 'admin' })
-    console.log('Admin created:', email)
+    await User.create({
+      email: normalisedEmail,
+      passwordHash: hash,
+      name,
+      phone: '+2340000000000',
+      role: 'admin',
+    })
+    console.log('Admin created:', normalisedEmail)
   }
 
   await mongoose.disconnect()
 }
 
-seed().catch((err) => { console.error(err); process.exit(1) })
+seed().catch((err) => {
+  console.error(err)
+  process.exit(1)
+})

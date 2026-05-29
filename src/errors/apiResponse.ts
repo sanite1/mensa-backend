@@ -1,9 +1,13 @@
-export interface ApiSuccessResponse<T> {
-  success: true
-  data: T
+export class ApiResponse<T = unknown> {
+  statusCode: number
   message: string
+  data?: T
+
+  constructor(statusCode: number, message: string, data?: T) {
+    this.statusCode = statusCode
+    this.message = message
+    if (data !== undefined) this.data = data
+  }
 }
 
-export function apiResponse<T>(data: T, message = 'OK'): ApiSuccessResponse<T> {
-  return { success: true, data, message }
-}
+export default ApiResponse

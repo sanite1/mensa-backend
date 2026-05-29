@@ -1,20 +1,27 @@
 import type { Response } from 'express'
-import { apiResponse } from '../errors/apiResponse'
-import { paginatedResponse, type Pagination } from '../errors/paginatedResponse'
+import { ApiResponse } from '../errors/apiResponse'
+import { REFRESH_COOKIE_NAME, refreshCookieOptions } from './jwt'
 
-export function sendSuccess<T>(res: Response, data: T, message = 'OK', statusCode = 200): void {
-  res.status(statusCode).json(apiResponse(data, message))
+export function sendResponse<T>(res: Response, response: ApiResponse<T>): void {
+  res.status(response.statusCode).json(response)
 }
 
-export function sendPaginated<T>(
+/**
+ * For auth flows. If the response carries a refreshToken in its data, set it
+ * as the httpOnly cookie and strip it from the JSON body so the client never
+ * sees the refresh token.
+ */
+export function sendAuthResponse<T extends { refreshToken?: string }>(
   res: Response,
-  data: T[],
-  pagination: Pagination,
-  message = 'OK',
+  response: ApiResponse<T>,
 ): void {
-  res.status(200).json(paginatedResponse(data, pagination, message))
+  if (response.data?.refreshToken) {
+    res.cookie(REFRESH_COOKIE_NAME, response.data.refreshToken, refreshCookieOptions())
+    delete response.data.refreshToken
+  }
+  sendResponse(res, response)
 }
 
-export function sendCreated<T>(res: Response, data: T, message = 'Created'): void {
-  res.status(201).json(apiResponse(data, message))
+export function clearAuthCookie(res: Response): void {
+  res.clearCookie(REFRESH_COOKIE_NAME, refreshCookieOptions())
 }
