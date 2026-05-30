@@ -18,10 +18,9 @@ import adminRouter from './routes/admin.routes'
 import orderRouter from './routes/order.routes'
 import checkoutRouter from './routes/checkout.routes'
 import webhookRouter from './routes/webhook.routes'
-// import discountRouter from './routes/discount.routes'
+import userRouter from './routes/user.routes'
 // import contentRouter from './routes/content.routes'
 // import b2bRouter from './routes/b2b/b2b.routes'
-// import userRouter from './routes/user.routes'
 
 validateEnv()
 
@@ -83,10 +82,9 @@ app.use('/api/v1/webhooks', webhookRouter)
 // `/api/payment/webhook/paystack`; keep both alive so dashboard URL edits
 // aren't a prerequisite for testing.
 app.use('/api/payment/webhook', webhookRouter)
-// app.use('/api/v1/discounts', discountRouter)
+app.use('/api/v1/users', userRouter)
 // app.use('/api/v1/content', contentRouter)
 // app.use('/api/v1/b2b', b2bRouter)
-// app.use('/api/v1/users', userRouter)
 
 app.use(globalErrorHandler)
 
