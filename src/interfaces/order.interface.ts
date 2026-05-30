@@ -189,6 +189,21 @@ export interface ListOrdersQuery {
   pageSize?: number
 }
 
+/** Body for PATCH /admin/orders/:id/fulfilment.
+ *
+ *  Admin can move the order forward through the fulfilment lifecycle
+ *  (pending → processing → shipped → delivered) or cancel an order that
+ *  has not yet shipped. When transitioning to `shipped`, an optional
+ *  trackingCode / trackingUrl can be supplied — useful for in-house
+ *  rider orders where Sendbox never generated one. */
+export interface UpdateOrderFulfilmentInput {
+  status: FulfilmentStatus
+  trackingCode?: string
+  trackingUrl?: string
+  /** Free-form note shown to admin only. Appended to internalNotes. */
+  note?: string
+}
+
 export interface Pagination {
   page: number
   pageSize: number

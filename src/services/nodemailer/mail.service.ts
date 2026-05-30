@@ -35,16 +35,42 @@ export async function sendMail(opts: {
 }): Promise<void> {
   try {
     const html = compile(opts.template, opts.data)
-    await transporter.sendMail({
+
+    // Gmail-via-app-password rewrites the From to the authenticated user
+    // and, in some accounts, silently dedupes a message whose To matches.
+    // Surface this at warn level so it's obvious from logs alone.
+    const smtpUser = (process.env.SMTP_USER ?? '').toLowerCase().trim()
+    if (smtpUser && smtpUser === opts.to.toLowerCase().trim()) {
+      logger.warn(
+        `[sendMail] to=${opts.to} matches SMTP_USER. Gmail can quietly drop ` +
+          `self-sends or merge them into your existing thread — if the email ` +
+          `does not arrive, try a different test recipient or check All Mail.`,
+      )
+    }
+
+    const info = await transporter.sendMail({
       from: process.env.SMTP_FROM,
       to: opts.to,
       subject: opts.subject,
       html,
       attachments: opts.attachments,
     })
-    logger.info(`Email sent: ${opts.template} → ${opts.to}`)
+    logger.info(
+      `Email sent: template=${opts.template} to=${opts.to} messageId=${info.messageId ?? '?'} accepted=${(info.accepted ?? []).length} rejected=${(info.rejected ?? []).length}`,
+    )
+    if ((info.rejected ?? []).length > 0) {
+      logger.warn(
+        `Email rejected addresses for ${opts.template}: ${JSON.stringify(info.rejected)}`,
+      )
+    }
   } catch (err) {
-    logger.error(`Email failed: ${opts.template} → ${opts.to}`, err)
+    // Surface the SMTP-side reason — most "no email arrived" reports trace
+    // back to a Gmail app-password mismatch or a from-address Gmail doesn't
+    // own. Logging the message + code makes it diagnosable from logs alone.
+    const e = err as { message?: string; code?: string; response?: string }
+    logger.error(
+      `Email failed: template=${opts.template} to=${opts.to} code=${e.code ?? '?'} msg=${e.message ?? '?'} resp=${e.response ?? '?'}`,
+    )
     // Don't throw — email failures should not break the transaction
   }
 }

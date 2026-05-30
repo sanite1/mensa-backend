@@ -132,6 +132,7 @@ export const validateCreateProduct = validate({
     trustLines: Joi.array().items(trustLine).default([]),
     metadata: metadata.default(() => ({})),
     isActive: Joi.boolean().default(true),
+    isSoldOut: Joi.boolean().default(false),
   }),
 })
 
@@ -154,6 +155,7 @@ export const validateUpdateProduct = validate({
     trustLines: Joi.array().items(trustLine),
     metadata,
     isActive: Joi.boolean(),
+    isSoldOut: Joi.boolean(),
   }).min(1).messages({
     'object.min': 'Send at least one field to update.',
   }),

@@ -22,7 +22,7 @@ const CORE_REQUIRED = [
 //    in keys for later sprints. ──
 const FEATURE_GATED: Record<string, string[]> = {
   Cloudinary: ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'],
-  Paystack: ['PAYSTACK_SECRET_KEY', 'PAYSTACK_PUBLIC_KEY', 'PAYSTACK_WEBHOOK_SECRET'],
+  Paystack: ['PAYSTACK_SECRET_KEY', 'PAYSTACK_PUBLIC_KEY'],
   Sendbox: ['SENDBOX_API_KEY'],
 }
 

@@ -7,6 +7,10 @@ declare global {
   namespace Express {
     interface Request {
       user?: AccessTokenPayload
+      /** Raw request body buffer, captured by the express.json verify
+       *  callback in index.ts. Required to verify webhook HMAC signatures
+       *  (Paystack signs the raw bytes, not the parsed JSON). */
+      rawBody?: Buffer
     }
   }
 }

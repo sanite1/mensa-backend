@@ -11,7 +11,6 @@ import crypto from 'crypto'
 import { assertEnv } from '../../config/validateEnv'
 
 const REQUIRED_KEYS = ['PAYSTACK_SECRET_KEY'] as const
-const WEBHOOK_REQUIRED = ['PAYSTACK_WEBHOOK_SECRET'] as const
 
 const BASE_URL = 'https://api.paystack.co'
 
@@ -86,18 +85,23 @@ export const paystackService = {
 
   /**
    * Verify a Paystack webhook signature. Paystack signs the raw request body
-   * with the webhook secret using HMAC-SHA512; we recompute and compare.
+   * with your **secret key** (not a separate webhook secret — that does not
+   * exist in their dashboard) using HMAC-SHA512. We recompute and compare in
+   * constant time.
    *
-   * Throws if the webhook secret isn't configured (we can't safely accept
-   * webhook calls without verification).
+   * Returns false if either the secret key or the signature header is
+   * missing — caller should 200 the request anyway so Paystack doesn't
+   * indefinitely retry our misconfiguration.
    */
   verifyWebhookSignature(rawBody: string, signature: string | undefined): boolean {
-    assertEnv([...WEBHOOK_REQUIRED], 'Paystack')
-    if (!signature) return false
+    const secret = process.env.PAYSTACK_SECRET_KEY
+    if (!secret || !signature) return false
     const expected = crypto
-      .createHmac('sha512', process.env.PAYSTACK_WEBHOOK_SECRET as string)
+      .createHmac('sha512', secret)
       .update(rawBody)
       .digest('hex')
+    // Equal-length buffers required by timingSafeEqual.
+    if (expected.length !== signature.length) return false
     return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
   },
 }

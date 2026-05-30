@@ -85,7 +85,14 @@ export interface IProduct {
   accordions: IProductAccordion[]
   trustLines: IProductTrustLine[]
   metadata: IProductMetadata
+  /** When false, the product is hidden from the public storefront entirely
+   *  (acts as a soft delete). Admin still sees it. */
   isActive: boolean
+  /** When true, the product remains visible on the storefront but is
+   *  rendered as sold out and add-to-bag is disabled — regardless of the
+   *  actual variant `stockCount`. Lets admin pause sales without zeroing
+   *  inventory. */
+  isSoldOut: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -117,6 +124,7 @@ export interface CreateProductInput {
   trustLines?: ProductTrustLineInput[]
   metadata?: IProductMetadata
   isActive?: boolean
+  isSoldOut?: boolean
 }
 
 export type UpdateProductInput = Partial<CreateProductInput>

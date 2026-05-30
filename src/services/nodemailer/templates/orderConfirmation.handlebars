@@ -1,0 +1,100 @@
+{{#> layout title="Your Mensa order is in"}}
+  <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#8A7C70;">
+    Order {{orderNumber}}
+  </p>
+  <h1 style="margin:0 0 16px 0;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:400;font-size:32px;line-height:1.2;color:#1A1410;">
+    Thank you, {{customerName}}.
+  </h1>
+  <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#4F433B;">
+    Your order is confirmed. We are getting your pieces ready and will email a tracking link the moment they leave our studio.
+  </p>
+
+  {{!--
+    Line items table. Email clients (especially Gmail mobile) need every
+    table reset explicitly and every cell width-locked, otherwise rows
+    collapse onto each other and prices float to the wrong line.
+  --}}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+         style="width:100%;border-collapse:collapse;border-spacing:0;margin:0 0 24px 0;border-top:1px solid #E7DCCC;">
+    {{#each lines}}
+      <tr>
+        <td valign="top" align="left" width="70%"
+            style="width:70%;padding:16px 12px 16px 0;border-bottom:1px solid #F1E8DA;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#1A1410;vertical-align:top;text-align:left;">
+          <div style="font-weight:600;line-height:1.3;">{{name}}</div>
+          {{#if variant}}
+            <div style="margin-top:4px;font-size:13px;color:#8A7C70;line-height:1.3;">{{variant}}</div>
+          {{/if}}
+          <div style="margin-top:4px;font-size:13px;color:#8A7C70;line-height:1.3;">Qty {{qty}}</div>
+        </td>
+        <td valign="top" align="right" width="30%"
+            style="width:30%;padding:16px 0 16px 12px;border-bottom:1px solid #F1E8DA;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#1A1410;vertical-align:top;text-align:right;white-space:nowrap;">
+          {{lineTotal}}
+        </td>
+      </tr>
+    {{/each}}
+  </table>
+
+  {{!-- Totals table — labels left, amounts right, fixed two-column. --}}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+         style="width:100%;border-collapse:collapse;border-spacing:0;margin:0 0 24px 0;">
+    <tr>
+      <td align="left" width="70%"
+          style="width:70%;padding:4px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#4F433B;text-align:left;">
+        Subtotal
+      </td>
+      <td align="right" width="30%"
+          style="width:30%;padding:4px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#4F433B;text-align:right;white-space:nowrap;">
+        {{subtotal}}
+      </td>
+    </tr>
+    <tr>
+      <td align="left" width="70%"
+          style="width:70%;padding:4px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#4F433B;text-align:left;">
+        Shipping
+      </td>
+      <td align="right" width="30%"
+          style="width:30%;padding:4px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#4F433B;text-align:right;white-space:nowrap;">
+        {{shipping}}
+      </td>
+    </tr>
+    <tr>
+      <td align="left" width="70%"
+          style="width:70%;padding:14px 0 0 0;border-top:1px solid #E7DCCC;font-family:Helvetica,Arial,sans-serif;font-size:15px;color:#1A1410;font-weight:600;text-align:left;">
+        Total
+      </td>
+      <td align="right" width="30%"
+          style="width:30%;padding:14px 0 0 0;border-top:1px solid #E7DCCC;font-family:Helvetica,Arial,sans-serif;font-size:15px;color:#1A1410;font-weight:600;text-align:right;white-space:nowrap;">
+        {{total}}
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#8A7C70;font-family:Helvetica,Arial,sans-serif;">
+    Delivering to
+  </p>
+  <p style="margin:0 0 24px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#1A1410;">
+    {{address.fullName}}<br />
+    {{address.line1}}{{#if address.line2}}, {{address.line2}}{{/if}}<br />
+    {{address.city}}, {{address.state}}<br />
+    {{address.phone}}
+  </p>
+
+  {{!-- CTA button. Wrapped in a single-cell table so Outlook respects the
+        background colour and padding. --}}
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0"
+         style="margin:8px 0 24px 0;border-collapse:collapse;">
+    <tr>
+      <td align="center" bgcolor="#FE718E"
+          style="background:#FE718E;border-radius:0;">
+        <a href="{{trackingUrl}}"
+           style="display:inline-block;padding:14px 28px;font-family:Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:#FFFCF6;text-decoration:none;letter-spacing:0.02em;">
+          View order status
+        </a>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;color:#8A7C70;">
+    Questions about your order? Just reply to this email. A real person will get back to you.
+  </p>
+{{/layout}}
