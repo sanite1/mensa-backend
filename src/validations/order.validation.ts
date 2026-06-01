@@ -109,6 +109,7 @@ export const validateInitializeCheckout = validate({
       'any.required': 'Shipping amount is required.',
     }),
     discountCode: Joi.string().trim().max(40).allow(''),
+    referralCode: Joi.string().trim().max(40).allow(''),
   }),
 })
 

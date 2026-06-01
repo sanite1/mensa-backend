@@ -93,6 +93,11 @@ export interface IProduct {
    *  actual variant `stockCount`. Lets admin pause sales without zeroing
    *  inventory. */
   isSoldOut: boolean
+  /** When true, the PDP renders a "Size guide" link that opens the
+   *  pants size-chart dialog. Off by default since most products
+   *  (pads, education) don't need sizing help — admin opts in per
+   *  product. */
+  showSizeGuide: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -125,6 +130,7 @@ export interface CreateProductInput {
   metadata?: IProductMetadata
   isActive?: boolean
   isSoldOut?: boolean
+  showSizeGuide?: boolean
 }
 
 export type UpdateProductInput = Partial<CreateProductInput>

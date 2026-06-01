@@ -1,0 +1,49 @@
+{{#> layout title="Your Mensa partner payout has been sent"}}
+  <h1 style="margin:0 0 16px 0;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:400;font-size:30px;line-height:1.2;color:#1A1410;">
+    Your payout is on its way, {{name}}.
+  </h1>
+  <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#4F433B;">
+    We have just sent <strong>{{amountFormatted}}</strong> to your bank account. Funds usually settle within one business day.
+  </p>
+  <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px 0;border-collapse:collapse;width:100%;background:#F6EFE4;">
+    <tr>
+      <td style="padding:18px 20px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:13px;color:#4F433B;">
+          <tr>
+            <td style="padding:4px 0;color:#8A7C70;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;">Amount</td>
+            <td style="padding:4px 0;text-align:right;color:#1A1410;font-weight:600;">{{amountFormatted}}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0;color:#8A7C70;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;">Sent to</td>
+            <td style="padding:4px 0;text-align:right;color:#1A1410;">{{accountName}}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0;color:#8A7C70;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;">Bank</td>
+            <td style="padding:4px 0;text-align:right;color:#1A1410;">{{bankName}}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0;color:#8A7C70;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;">Account</td>
+            <td style="padding:4px 0;text-align:right;color:#1A1410;font-family:'DM Mono','Courier New',monospace;">{{maskedAccountNumber}}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0;color:#8A7C70;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;">Reference</td>
+            <td style="padding:4px 0;text-align:right;color:#1A1410;font-family:'DM Mono','Courier New',monospace;">{{paymentReference}}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  <p style="margin:0 0 24px 0;font-size:14px;line-height:1.6;color:#4F433B;">
+    You can see your full commission history any time from your partner dashboard.
+  </p>
+  <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px 0;">
+    <tr>
+      <td style="background:#1A1410;">
+        <a href="{{dashboardUrl}}" style="display:inline-block;padding:14px 28px;font-size:14px;font-weight:600;color:#FFFCF6;text-decoration:none;letter-spacing:0.02em;">Open my dashboard</a>
+      </td>
+    </tr>
+  </table>
+  <p style="margin:0;font-size:13px;line-height:1.6;color:#8A7C70;">
+    Something not right? Reply to this email and we will sort it out.
+  </p>
+{{/layout}}

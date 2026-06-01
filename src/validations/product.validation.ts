@@ -133,6 +133,7 @@ export const validateCreateProduct = validate({
     metadata: metadata.default(() => ({})),
     isActive: Joi.boolean().default(true),
     isSoldOut: Joi.boolean().default(false),
+    showSizeGuide: Joi.boolean().default(false),
   }),
 })
 
@@ -156,6 +157,7 @@ export const validateUpdateProduct = validate({
     metadata,
     isActive: Joi.boolean(),
     isSoldOut: Joi.boolean(),
+    showSizeGuide: Joi.boolean(),
   }).min(1).messages({
     'object.min': 'Send at least one field to update.',
   }),

@@ -101,6 +101,7 @@ const ProductSchema = new Schema<IProduct, ProductModel>(
     metadata: { type: MetadataSchema, default: () => ({}) },
     isActive: { type: Boolean, default: true, index: true },
     isSoldOut: { type: Boolean, default: false },
+    showSizeGuide: { type: Boolean, default: false },
   },
   {
     timestamps: true,

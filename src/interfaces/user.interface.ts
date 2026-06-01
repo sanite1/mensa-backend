@@ -1,6 +1,6 @@
 import type { Document, Types } from 'mongoose'
 
-export type UserRole = 'customer' | 'admin' | 'b2b_admin' | 'b2b_member'
+export type UserRole = 'customer' | 'admin' | 'b2b_admin' | 'b2b_member' | 'partner'
 
 /** A saved delivery address on the customer's profile. Mirrors the
  *  checkout address shape so it can prefill checkout directly. Distinct

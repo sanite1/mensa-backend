@@ -19,8 +19,11 @@ import orderRouter from './routes/order.routes'
 import checkoutRouter from './routes/checkout.routes'
 import webhookRouter from './routes/webhook.routes'
 import userRouter from './routes/user.routes'
-// import contentRouter from './routes/content.routes'
-// import b2bRouter from './routes/b2b/b2b.routes'
+import partnerRouter from './routes/partner.routes'
+import newsletterRouter from './routes/newsletter.routes'
+import contactRouter from './routes/contact.routes'
+import contentRouter from './routes/content.routes'
+import b2bRouter from './routes/b2b/b2b.routes'
 
 validateEnv()
 
@@ -83,8 +86,11 @@ app.use('/api/v1/webhooks', webhookRouter)
 // aren't a prerequisite for testing.
 app.use('/api/payment/webhook', webhookRouter)
 app.use('/api/v1/users', userRouter)
-// app.use('/api/v1/content', contentRouter)
-// app.use('/api/v1/b2b', b2bRouter)
+app.use('/api/v1/partners', partnerRouter)
+app.use('/api/v1/newsletter', newsletterRouter)
+app.use('/api/v1/contact', contactRouter)
+app.use('/api/v1/content', contentRouter)
+app.use('/api/v1/b2b', b2bRouter)
 
 app.use(globalErrorHandler)
 

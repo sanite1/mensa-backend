@@ -290,6 +290,9 @@ function toCreateInput(spec: SeedSpec): CreateProductInput {
       ? { badge: spec.badge.label, badgeTone: spec.badge.tone }
       : {},
     isActive: true,
+    // Pants + bundles share the same waist-based sizing; turn on the
+    // size-guide link automatically. Pads / education don't need it.
+    showSizeGuide: spec.category === 'pants' || spec.category === 'bundles',
   }
 }
 
@@ -337,6 +340,7 @@ async function seed() {
         optionTypes: input.optionTypes,
         metadata: input.metadata,
         isActive: input.isActive,
+        showSizeGuide: input.showSizeGuide ?? false,
         variants: input.variants.map((v) => ({
           ...v,
           stockCount: preservedStock.get(optionsKey(v.options)) ?? v.stockCount,

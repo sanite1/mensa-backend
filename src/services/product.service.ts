@@ -225,6 +225,7 @@ export const updateProductService = async (
     'metadata',
     'isActive',
     'isSoldOut',
+    'showSizeGuide',
   ]
   for (const key of updatable) {
     if (input[key] !== undefined) {

@@ -30,6 +30,12 @@ import {
   releaseRedemptionByCode,
   reserveRedemptionByCode,
 } from './discount.service'
+import {
+  accrueCommissionOnOrderPaid,
+  markCommissionAvailableForOrder,
+  resolveActivePartnerByCode,
+  reverseCommissionForOrder,
+} from './partner.service'
 import { logger } from '../config/logger'
 import type {
   CheckoutLineInput,
@@ -304,6 +310,14 @@ export const initializeCheckoutService = async (
       country: input.address.country || 'NG',
       postal: input.address.postal,
     }
+    // Resolve referral code (silently drops invalid / inactive codes —
+    // we never break checkout because of a stale ref cookie).
+    let appliedReferralCode: string | null = null
+    if (input.referralCode?.trim()) {
+      const partner = await resolveActivePartnerByCode(input.referralCode)
+      if (partner) appliedReferralCode = partner.referralCode ?? null
+    }
+
     order = (await Order.create({
       orderNumber,
       source: 'web',
@@ -316,6 +330,7 @@ export const initializeCheckoutService = async (
       payment: { status: 'pending', reference: orderNumber },
       fulfilment: { status: 'pending', shippingMethod: input.shippingMethod },
       discountCode: appliedDiscountCode ?? undefined,
+      referralCode: appliedReferralCode,
     })) as OrderDocument
 
     // 6. Initialize Paystack transaction.
@@ -443,6 +458,14 @@ export const markOrderPaidService = async (
 
   await order.save()
   logger.info(`[markOrderPaid] saved order=${reference} as paid. Sending email…`)
+
+  // Accrue partner commission (pending until delivery). Best-effort:
+  // any failure is logged but never reverts the payment.
+  try {
+    await accrueCommissionOnOrderPaid(order)
+  } catch (err) {
+    logger.error(`[markOrderPaid] commission accrual failed for ${reference}`, err)
+  }
 
   // Fire confirmation email. sendMail catches its own errors so a broken
   // SMTP config never blocks the webhook from returning 200, but we still
@@ -751,12 +774,32 @@ export const adminUpdateOrderFulfilmentService = async (
 
   if (input.status === 'delivered') {
     order.fulfilment.deliveredAt = now
+    // Flip the partner commission from pending to available so it
+    // counts towards the cashable balance.
+    try {
+      await markCommissionAvailableForOrder(order)
+    } catch (err) {
+      logger.error(
+        `[adminUpdateFulfilment] commission flip failed for ${order.orderNumber}`,
+        err,
+      )
+    }
   }
 
   if (input.status === 'cancelled') {
     await restoreStockFor(order.lines)
     if (order.discountCode) {
       await releaseRedemptionByCode(order.discountCode)
+    }
+    // Reverse any partner commission (whether pending or already
+    // available — partner shouldn't earn on a cancelled order).
+    try {
+      await reverseCommissionForOrder(order, 'order cancelled')
+    } catch (err) {
+      logger.error(
+        `[adminUpdateFulfilment] commission reverse failed for ${order.orderNumber}`,
+        err,
+      )
     }
     logger.info(
       `[adminUpdateFulfilment] cancelled ${order.orderNumber}; stock restored.`,
@@ -790,9 +833,12 @@ export const adminUpdateOrderFulfilmentService = async (
           customerName:
             (order.address.fullName ?? '').split(' ')[0] || 'there',
           trackingCode: order.fulfilment.trackingCode ?? '',
+          // Prefer the courier's tracking URL when we have one (sendbox).
+          // Otherwise deep-link to our own tracker pre-filled with the order
+          // number + email so the customer doesn't retype anything.
           trackingUrl:
             order.fulfilment.trackingUrl ??
-            `${process.env.FRONTEND_PLATFORM_URL}/orders/track`,
+            `${process.env.FRONTEND_PLATFORM_URL}/orders/track?orderNumber=${encodeURIComponent(order.orderNumber)}&email=${encodeURIComponent(order.customerEmail)}`,
         },
       })
     } catch (err) {

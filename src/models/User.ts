@@ -30,7 +30,7 @@ const UserSchema = new Schema<IUser, UserModel>(
     phone: { type: String, required: true, trim: true },
     role: {
       type: String,
-      enum: ['customer', 'admin', 'b2b_admin', 'b2b_member'] satisfies UserRole[],
+      enum: ['customer', 'admin', 'b2b_admin', 'b2b_member', 'partner'] satisfies UserRole[],
       default: 'customer',
     },
     b2bOrgId: { type: Schema.Types.ObjectId, ref: 'B2BOrg', default: null },

@@ -32,6 +32,10 @@ export async function sendMail(opts: {
   template: string
   data: Record<string, unknown>
   attachments?: Array<{ filename: string; path: string; contentType?: string }>
+  /** Optional Reply-To header. Useful for forwarded inbound messages
+   *  (e.g. the contact form) so support can hit Reply and respond to
+   *  the original sender, not the brand mailbox. */
+  replyTo?: string
 }): Promise<void> {
   try {
     const html = compile(opts.template, opts.data)
@@ -54,6 +58,7 @@ export async function sendMail(opts: {
       subject: opts.subject,
       html,
       attachments: opts.attachments,
+      replyTo: opts.replyTo,
     })
     logger.info(
       `Email sent: template=${opts.template} to=${opts.to} messageId=${info.messageId ?? '?'} accepted=${(info.accepted ?? []).length} rejected=${(info.rejected ?? []).length}`,

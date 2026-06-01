@@ -110,6 +110,10 @@ export interface IOrder {
   fulfilment: IOrderFulfilment
   /** Discount code (if any) used at checkout. */
   discountCode?: string
+  /** Partner referral code captured at checkout. Used to accrue commission
+   *  for the partner once the order is paid. Set once at order creation
+   *  time; never rewritten after the fact. */
+  referralCode?: string | null
   /** Free form admin notes shown only in admin. */
   internalNotes?: string
   createdAt: Date
@@ -169,6 +173,11 @@ export interface InitializeCheckoutInput {
   /** Selected rate amount in kobo (must match an option returned by /shipping-rates). */
   shippingAmount: number
   discountCode?: string
+  /** Partner referral code captured from `?ref=` in the URL, persisted in
+   *  localStorage and forwarded here. We resolve it server-side; an
+   *  invalid / inactive code is silently dropped so checkout never fails
+   *  because of a stale referral. */
+  referralCode?: string
 }
 
 export interface InitializeCheckoutResult {

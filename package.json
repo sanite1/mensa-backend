@@ -14,6 +14,7 @@
     "test:coverage": "vitest run --coverage",
     "seed:admin": "ts-node src/scripts/seedAdmin.ts",
     "seed:products": "ts-node src/scripts/seedProducts.ts",
+    "seed:journal": "ts-node src/scripts/seedJournal.ts",
     "prepare": "husky"
   },
   "dependencies": {

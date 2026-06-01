@@ -132,6 +132,7 @@ const OrderSchema = new Schema<IOrder, OrderModel>(
     payment: { type: PaymentSchema, required: true },
     fulfilment: { type: FulfilmentSchema, required: true },
     discountCode: { type: String, trim: true },
+    referralCode: { type: String, trim: true, default: null, index: true },
     internalNotes: { type: String },
   },
   {
