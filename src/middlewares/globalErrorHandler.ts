@@ -18,8 +18,13 @@ export function globalErrorHandler(
     return
   }
 
-  // Unknown / programmer errors — don't leak internals
-  logger.error('Unhandled error', err)
+  // Unknown / programmer errors — don't leak internals to the client, but
+  // do surface the real stack in the server log so we can debug 500s.
+  if (err instanceof Error) {
+    logger.error(`Unhandled error: ${err.message}`, { stack: err.stack })
+  } else {
+    logger.error('Unhandled non-Error thrown', { value: err })
+  }
   res.status(500).json({
     statusCode: 500,
     message: 'An unexpected error occurred.',
