@@ -15,11 +15,13 @@ const slug = Joi.string()
     'string.max': 'Slug must be 120 characters or fewer.',
   })
 
-const category = Joi.string().valid('pants', 'pads', 'bundles', 'education').messages({
-  'any.only': 'Category must be pants, pads, bundles, or education.',
-  'string.empty': 'Category is required.',
-  'any.required': 'Category is required.',
-})
+const category = Joi.string()
+  .valid('pants', 'pads', 'bundles', 'education', 'advocacy')
+  .messages({
+    'any.only': 'Category must be pants, pads, bundles, education, or advocacy.',
+    'string.empty': 'Category is required.',
+    'any.required': 'Category is required.',
+  })
 
 const priceKobo = Joi.number().integer().min(0).messages({
   'number.base': 'Price must be a whole number of kobo.',
@@ -87,7 +89,7 @@ const metadata = Joi.object({
 // ── List ──────────────────────────────────────────────────────────────
 export const validateListProducts = validate({
   query: Joi.object({
-    category: Joi.string().valid('pants', 'pads', 'bundles', 'education'),
+    category: Joi.string().valid('pants', 'pads', 'bundles', 'education', 'advocacy'),
     q: Joi.string().trim().max(120).allow(''),
     sort: Joi.string().valid('price_asc', 'price_desc', 'newest', 'featured'),
     page: Joi.number().integer().min(1).default(1),

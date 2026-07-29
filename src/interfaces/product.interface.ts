@@ -1,6 +1,11 @@
 import type { Document, Types } from 'mongoose'
 
-export type ProductCategory = 'pants' | 'pads' | 'bundles' | 'education'
+export type ProductCategory =
+  | 'pants'
+  | 'pads'
+  | 'bundles'
+  | 'education'
+  | 'advocacy'
 export type BadgeTone = 'pink' | 'coral' | 'ink'
 
 // ── Embedded subdocuments ──

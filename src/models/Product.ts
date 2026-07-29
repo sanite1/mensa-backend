@@ -86,7 +86,7 @@ const ProductSchema = new Schema<IProduct, ProductModel>(
     description: { type: String, default: '' },
     category: {
       type: String,
-      enum: ['pants', 'pads', 'bundles', 'education'] satisfies ProductCategory[],
+      enum: ['pants', 'pads', 'bundles', 'education', 'advocacy'] satisfies ProductCategory[],
       required: true,
       index: true,
     },
