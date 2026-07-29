@@ -49,7 +49,13 @@ export const cloudinaryService = {
         },
         (error, result) => {
           if (error || !result) {
-            reject(error ?? new Error('Cloudinary upload returned no result'))
+            // Cloudinary rejects with a plain object like {message, http_code, name}.
+            // Wrap into a real Error so downstream logging + error handling work.
+            const raw = error as { message?: string; http_code?: number; name?: string } | undefined
+            const message = raw?.message ?? 'Cloudinary upload returned no result'
+            const wrapped = new Error(`Cloudinary upload failed: ${message}`)
+            if (raw?.http_code) (wrapped as Error & { httpCode?: number }).httpCode = raw.http_code
+            reject(wrapped)
             return
           }
           resolve({
