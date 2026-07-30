@@ -15,9 +15,7 @@ const multerInstance = multer({
   },
 })
 
-// Wrap multer middleware so multer errors (file too big, wrong field name,
-// fileFilter rejections) come out as proper ApiError responses instead of
-// opaque 500s from the global handler.
+// Wrap multer so its errors (file too big, wrong field name, fileFilter rejections) surface as ApiError responses instead of opaque 500s.
 function wrap(mw: RequestHandler): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
     mw(req, res, (err: unknown) => {

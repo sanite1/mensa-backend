@@ -1,13 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
-// b2bOrg.service.ts
-//
-// Partnerships (B2BOrg) lifecycle:
-//   - Public: submit an application (status = pending).
-//   - Admin: list, filter by status, verify or reject.
-//
-// Pricing tiers, quotes, and invoicing are deliberately out of
-// scope for this iteration — they live in a later sprint.
-// ═══════════════════════════════════════════════════════════════
+// b2bOrg.service.ts — partnerships (B2BOrg) lifecycle: public application submit, admin list / verify / reject. Pricing tiers, quotes and invoicing are a later sprint.
 
 import type { FilterQuery } from 'mongoose'
 import { Types } from 'mongoose'

@@ -72,10 +72,7 @@ const PartnerSchema = new Schema<IPartner, PartnerModelType>(
     bankAccount: { type: BankAccountSchema, default: undefined },
 
     pendingBalanceKobo: { type: Number, default: 0, min: 0 },
-    // availableBalanceKobo can go NEGATIVE when an already-paid commission
-    // is reversed (e.g. customer refund post-payout). Future earnings net
-    // against the deficit before the partner can cash out again — that's
-    // the claw-back. We deliberately drop the min:0 constraint here.
+    // availableBalanceKobo can go negative when an already paid commission is reversed, future earnings net against the deficit (the claw back), so no min:0 here.
     availableBalanceKobo: { type: Number, default: 0 },
     lifetimeEarnedKobo: { type: Number, default: 0, min: 0 },
     lifetimePaidKobo: { type: Number, default: 0, min: 0 },

@@ -1,12 +1,5 @@
-// ─────────────────────────────────────────────────────────────────────────
-// Order number minting.
-//
-// Format: MS-YYYY-NNNNN where NNNNN is a 5-digit zero-padded sequence that
-// resets each calendar year. We derive the sequence by counting existing
-// orders in the current year and incrementing — good enough at MVP volume.
-// When daily order counts climb into the hundreds we'll move to a proper
-// Mongo counter document.
-// ─────────────────────────────────────────────────────────────────────────
+// Order number minting — format MS-YYYY-NNNNN, 5 digit sequence resets each year, derived by counting the year's orders.
+// Good enough at MVP volume, move to a Mongo counter document when daily counts climb.
 import { Order } from '../models/Order'
 
 export async function mintOrderNumber(): Promise<string> {

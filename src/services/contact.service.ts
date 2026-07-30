@@ -1,15 +1,5 @@
-// ═══════════════════════════════════════════════════════════════
-// contact.service.ts
-//
-// Lightweight "send us a message" form. We forward the submission
-// to the support inbox via the existing nodemailer plumbing — no
-// dedicated model or queue, since the volume is low and the inbox
-// is the source of truth.
-//
-// `replyTo` is set on the outgoing email so the support team can
-// hit Reply and respond to the visitor directly without retyping
-// their address.
-// ═══════════════════════════════════════════════════════════════
+// contact.service.ts — contact form forwarded to the support inbox via nodemailer, no model or queue, the inbox is the source of truth.
+// replyTo is set to the visitor so support can reply directly.
 
 import { ApiError } from '../errors/apiError'
 import { ApiResponse } from '../errors/apiResponse'
@@ -52,9 +42,7 @@ export const submitContactMessageService = async (
     throw new ApiError(400, 'Name, email and message are required.')
   }
 
-  // Resolve the destination. Falls back to SMTP_FROM (the brand
-  // mailbox) so a fresh deploy without a dedicated SUPPORT_EMAIL
-  // still routes contact form mail somewhere visible.
+  // Destination falls back to SMTP_FROM so a deploy without SUPPORT_EMAIL still routes mail somewhere visible.
   const to = process.env.SUPPORT_EMAIL ?? process.env.SMTP_FROM
   if (!to) {
     logger.error('[contact] no SUPPORT_EMAIL or SMTP_FROM configured; dropping message.')

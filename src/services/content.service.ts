@@ -1,10 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
-// content.service.ts
-//
-// CRUD for ContentPost (journal + education posts). Public surface
-// (list + getBySlug) only returns published posts; admin surface
-// returns drafts too.
-// ═══════════════════════════════════════════════════════════════
+// content.service.ts — CRUD for ContentPost. Public surface returns published posts only, admin surface includes drafts.
 
 import type { FilterQuery } from 'mongoose'
 import { Types } from 'mongoose'
@@ -164,9 +158,7 @@ export const adminUpdateContentService = async (
 
   if (input.status !== undefined && input.status !== post.status) {
     post.status = input.status
-    // Stamp publishedAt the first time the post goes live; leave it
-    // alone on subsequent draft <-> published flips so authors don't
-    // accidentally erase their original publish date.
+    // Stamp publishedAt only on first publish so draft flips never erase the original date.
     if (input.status === 'published' && !post.publishedAt) {
       post.publishedAt = new Date()
     }
@@ -187,9 +179,7 @@ export const adminDeleteContentService = async (
 }
 
 // ─── Admin: upload cover image ──────────────────────────────────
-// Standalone upload (not tied to a saved post) so the editor can attach
-// a cover before the post is ever created. Returns the hosted URL +
-// publicId; the editor then submits them inside the post's coverImage.
+// Standalone upload so the editor can attach a cover before the post exists, returns the URL + publicId for the post's coverImage.
 export const adminUploadContentImageService = async (file: {
   buffer: Buffer
   mimetype: string

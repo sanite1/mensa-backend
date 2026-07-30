@@ -29,9 +29,7 @@ router.post(
   controller.initializeCheckout,
 )
 
-// Verify-on-return. Called by the confirmation page on mount so the
-// customer sees an authoritative payment outcome immediately without
-// having to wait on the asynchronous webhook. Idempotent.
+// Verify on return, called by the confirmation page on mount for an immediate authoritative outcome without waiting on the webhook. Idempotent.
 router.post(
   '/verify/:reference',
   publicReadLimiter,
@@ -39,9 +37,7 @@ router.post(
   controller.verifyCheckout,
 )
 
-// Discount preview. Customer types a code, frontend posts here to find
-// out (without committing) what the kobo savings would be. Rate-limited
-// to stop brute-force code guessing.
+// Discount preview, returns the kobo savings without committing. Rate limited to stop brute force code guessing.
 router.post(
   '/apply-discount',
   publicReadLimiter,

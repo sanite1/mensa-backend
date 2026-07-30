@@ -1,17 +1,5 @@
-// ═══════════════════════════════════════════════════════════════
-// order.service.ts
-//
-// Pure business logic for the checkout + order lifecycle. Routes
-// stay thin wrappers; this file owns line snapshots, stock
-// reservation, Paystack initialization, webhook reconciliation,
-// Sendbox shipment creation, and confirmation emails.
-//
-// Stock model: variants are decremented atomically at
-// initialize time (the moment the customer hits Pay), then either
-// confirmed (on charge.success webhook) or restored (on
-// charge.failed / cancelled). This prevents two customers from
-// racing for the last unit during the Paystack modal flow.
-// ═══════════════════════════════════════════════════════════════
+// order.service.ts — business logic for the checkout and order lifecycle: line snapshots, stock reservation, Paystack init, webhook reconciliation, Sendbox shipments, emails.
+// Stock is decremented atomically at initialize, then confirmed on charge.success or restored on failure, so two customers can't race for the last unit.
 
 import type { FilterQuery } from 'mongoose'
 import { Types } from 'mongoose'
@@ -281,9 +269,7 @@ export const initializeCheckoutService = async (
   // 4. Reserve stock atomically.
   await reserveStock(snapshots)
 
-  // 4b. Reserve one redemption of the discount code (if any). Race-safe:
-  //     if the maxUses cap was hit between preview and now, we refuse the
-  //     order before persisting anything and release stock immediately.
+  // 4b. Reserve one redemption of the discount code, race safe: if the cap was hit since preview, refuse before persisting and release stock.
   let discountReserved = false
   if (appliedDiscountCode) {
     discountReserved = await reserveRedemptionByCode(appliedDiscountCode)
@@ -372,15 +358,7 @@ export const initializeCheckoutService = async (
 
 // ─── Webhook reconciliation ───────────────────────────────────────
 
-/** Mark an order as paid and trigger downstream side effects.
- *  Idempotent: a second call on an already-paid order is a no-op.
- *
- *  Security model: the signed webhook is the primary trust boundary. If the
- *  Paystack-side `transaction/verify` call returns something other than
- *  'success', we LOG that discrepancy but still proceed — verify can lag the
- *  webhook by a few seconds in test mode. We only refuse to mark the order
- *  paid when the verify-side amount is *less than* what the customer was
- *  supposed to pay (the only mismatch that's actually unsafe). */
+/** Mark an order paid and fire downstream side effects. Idempotent on already paid orders. The signed webhook is the trust boundary, a lagging verify response is logged but tolerated, we only refuse when the verified amount is LESS than what was owed. */
 export const markOrderPaidService = async (
   reference: string,
   paystackPayload?: Record<string, unknown>,
@@ -467,14 +445,9 @@ export const markOrderPaidService = async (
     logger.error(`[markOrderPaid] commission accrual failed for ${reference}`, err)
   }
 
-  // Fire confirmation email. sendMail catches its own errors so a broken
-  // SMTP config never blocks the webhook from returning 200, but we still
-  // log around it here so the failure is visible end-to-end.
+  // Fire confirmation email. sendMail catches its own errors so broken SMTP never blocks the webhook 200, but log here for end to end visibility.
   try {
-    // Spread Mongoose subdoc fields into a plain JS object so Handlebars
-    // can reach `address.fullName` etc. through normal property access.
-    // The default getter proxy on Mongoose subdocs sometimes returns
-    // undefined for nested lookups inside Handlebars templates.
+    // Spread Mongoose subdoc fields into a plain object, Handlebars nested property access can return undefined through the subdoc getter proxy.
     const addressPlain = {
       fullName: order.address.fullName ?? '',
       phone: order.address.phone ?? '',
@@ -514,9 +487,7 @@ export const markOrderPaidService = async (
     logger.error(`[markOrderPaid] sendMail threw unexpectedly`, err)
   }
 
-  // Notify the admin inbox so new orders surface without dashboard
-  // polling. Best-effort like the customer email — a broken alert must
-  // never block the webhook.
+  // Notify the admin inbox so new orders surface without polling. Best effort like the customer email, a broken alert must never block the webhook.
   try {
     const adminTo =
       process.env.ADMIN_NOTIFICATION_EMAIL ??
@@ -593,22 +564,7 @@ export const markOrderFailedService = async (reference: string): Promise<void> =
   })
 }
 
-/**
- * Verify-on-return: hit Paystack's `transaction/verify` endpoint directly
- * and reconcile the local order based on the response.
- *
- * Why we have this in addition to the webhook:
- *   • The customer comes back to /checkout/confirmation/:ref via Paystack's
- *     redirect. At that moment the webhook may not have landed (or may
- *     never land, if ngrok is down or the secret is wrong). Calling
- *     Paystack directly gives us an authoritative answer immediately.
- *   • Idempotent — safe to call as many times as the frontend wants. If
- *     the order is already paid, we just return it.
- *
- * Safe to expose publicly: an attacker who guesses an order number gains
- * nothing because Paystack is the source of truth for whether *that
- * reference* actually completed a charge.
- */
+/** Verify on return: ask Paystack transaction/verify directly and reconcile locally, because the redirect can beat the webhook (or the webhook may never land). Idempotent and safe to expose publicly, Paystack stays the source of truth for the reference. */
 export const verifyAndReconcileOrderService = async (
   reference: string,
 ): Promise<ApiResponse<{ order: OrderDocument }>> => {
@@ -757,11 +713,7 @@ export const adminGetOrderService = async (
 
 /* ─── Admin: update fulfilment ────────────────────────────────────── */
 
-/** Forward-only fulfilment state machine, plus 'cancelled' as a sink
- *  reachable from any pre-shipped state. The order each status appears
- *  in determines what's allowed: any later index is fine, any earlier
- *  index is rejected. `cancelled` and `delivered` are terminal — no
- *  further transitions allowed. */
+/** Forward only fulfilment state machine, cancelled is a sink from any pre shipped state. Array order defines allowed transitions, cancelled and delivered are terminal. */
 const FULFILMENT_ORDER: FulfilmentStatus[] = [
   'pending',
   'processing',
@@ -887,9 +839,7 @@ export const adminUpdateOrderFulfilmentService = async (
           customerName:
             (order.address.fullName ?? '').split(' ')[0] || 'there',
           trackingCode: order.fulfilment.trackingCode ?? '',
-          // Prefer the courier's tracking URL when we have one (sendbox).
-          // Otherwise deep-link to our own tracker pre-filled with the order
-          // number + email so the customer doesn't retype anything.
+          // Prefer the courier tracking URL, else deep link our own tracker prefilled with the order number and email.
           trackingUrl:
             order.fulfilment.trackingUrl ??
             `${process.env.FRONTEND_PLATFORM_URL}/orders/track?orderNumber=${encodeURIComponent(order.orderNumber)}&email=${encodeURIComponent(order.customerEmail)}`,

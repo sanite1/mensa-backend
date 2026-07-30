@@ -1,11 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
-// admin.service.ts
-//
-// Cross-cutting admin endpoints that don't belong to a single
-// domain service. Right now: dashboard stats (today's orders,
-// rolling weekly revenue, fulfilment backlog, low-stock SKUs)
-// plus the recent-orders strip rendered under the KPI cards.
-// ═══════════════════════════════════════════════════════════════
+// admin.service.ts — cross cutting admin endpoints, currently dashboard stats and the recent orders strip.
 
 import type { FilterQuery } from 'mongoose'
 import { Types } from 'mongoose'
@@ -139,9 +132,7 @@ export const adminStatsService = async (): Promise<ApiResponse<AdminStats>> => {
   })
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  Customers (admin) — list + detail
-// ═══════════════════════════════════════════════════════════════
+// ── Customers (admin): list + detail ─────────────────────────────
 
 const DEFAULT_PAGE_SIZE = 20
 const MAX_PAGE_SIZE = 100

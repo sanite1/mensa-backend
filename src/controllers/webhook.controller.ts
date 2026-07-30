@@ -1,17 +1,5 @@
-// ═══════════════════════════════════════════════════════════════
-// webhook.controller.ts
-//
-// Paystack webhook entry point. Verifies the HMAC-SHA512 signature
-// against the raw request body (captured by the express.json
-// verify callback in index.ts), then dispatches the event to the
-// order service. We always respond 200 to Paystack so they stop
-// retrying; bad signatures are logged but still 200'd to avoid
-// telegraphing key material via response codes.
-//
-// In dev we also expose POST /webhooks/paystack/dev-fire which
-// lets us simulate charge.success / charge.failed without setting
-// up a public tunnel.
-// ═══════════════════════════════════════════════════════════════
+// webhook.controller.ts — Paystack webhook entry. Verifies the HMAC signature against the raw body captured in index.ts, then dispatches to the order service.
+// Always responds 200, even on bad signatures, so Paystack stops retrying and response codes leak nothing. Dev only /webhooks/paystack/dev-fire simulates events without a tunnel.
 
 import type { Request, Response, NextFunction } from 'express'
 import { paystackService } from '../services/external/paystack.service'
@@ -80,10 +68,7 @@ export const paystackWebhook = async (
   }
 }
 
-/* ── POST /webhooks/paystack/dev-fire ──
- *
- * Local-only convenience endpoint to fire a fake event by order
- * reference. Gated by NODE_ENV !== 'production'. */
+/* ── POST /webhooks/paystack/dev-fire — local only fake event firing, gated by NODE_ENV !== 'production'. ── */
 interface DevFireBody {
   reference: string
   event?: 'charge.success' | 'charge.failed'

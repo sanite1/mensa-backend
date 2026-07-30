@@ -1,16 +1,5 @@
-// ─────────────────────────────────────────────────────────────────────────
-// Sendbox service.
-//
-// When SENDBOX_API_KEY is set, we call the real Sendbox API for shipping
-// rates and to create shipments. When it isn't, we return stubbed rates so
-// the rest of the checkout flow can be developed and tested locally:
-//
-//   In-house rider (₦2,500) — for FCT and Lagos only
-//   Nationwide stub (₦5,000) — for every other state
-//
-// Stub mode logs a warning whenever a stub shipment is created so it's
-// clear we aren't hitting the real provider.
-// ─────────────────────────────────────────────────────────────────────────
+// Sendbox service — real API when SENDBOX_API_KEY is set, otherwise stubbed rates (in house rider ₦2,500 for FCT / Lagos, nationwide ₦5,000) so checkout works locally.
+// Stub shipments log a warning so it's clear the real provider isn't being hit.
 import axios from 'axios'
 import { logger } from '../../config/logger'
 
@@ -61,11 +50,7 @@ interface RateLookup {
 // ── Service ─────────────────────────────────────────────────────────
 
 export const sendboxService = {
-  /**
-   * Fetch shipping options for a destination + weight. Always includes the
-   * in-house option for FCT/Lagos (cheaper local rider service Mensa runs
-   * itself) before the Sendbox nationwide options.
-   */
+  /** Fetch shipping options for a destination and weight, the in house FCT / Lagos rider option always precedes the Sendbox nationwide ones. */
   async getRates(input: RateLookup): Promise<SendboxRate[]> {
     const inHouseOption: SendboxRate | null = IN_HOUSE_STATES.has(
       input.destinationState,
@@ -113,11 +98,7 @@ export const sendboxService = {
     return inHouseOption ? [inHouseOption, ...rates] : rates
   },
 
-  /**
-   * Create a Sendbox shipment for a paid order. No-op in stub mode (returns
-   * a synthetic tracking code prefixed with `STUB-`). Real shipments fire
-   * only when the API key is configured.
-   */
+  /** Create a shipment for a paid order. Stub mode returns a synthetic STUB prefixed tracking code, real shipments fire only with the API key configured. */
   async createShipment(orderData: {
     reference: string
     serviceId: string

@@ -151,8 +151,7 @@ router.delete(
 )
 
 // ── Content posts ────────────────────────────────────────────────
-// Standalone cover upload (multipart). Registered before the :id routes
-// so "upload-image" can never be captured as a post id.
+// Standalone cover upload (multipart), registered before the :id routes so "upload-image" is never captured as a post id.
 router.post(
   '/content/upload-image',
   upload.single('image'),
@@ -169,9 +168,7 @@ router.delete(
 )
 
 // ── Partnerships ─────────────────────────────────────────────────
-// Specific sub-paths (individuals, payouts) MUST come before the
-// catch-all `/partnerships/:id` org route — otherwise :id captures
-// "individuals" / "payouts" and routes them to the org controller.
+// Specific sub paths (individuals, payouts) MUST come before the catch all /partnerships/:id, otherwise :id captures them and routes to the org controller.
 
 // Individual partners (referral programme)
 router.get(

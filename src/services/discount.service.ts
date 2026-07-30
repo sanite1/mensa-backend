@@ -1,19 +1,5 @@
-// ═══════════════════════════════════════════════════════════════
-// discount.service.ts
-//
-// Business logic for the discount module. Two main surfaces:
-//   1. Admin CRUD — list / get / create / update / delete codes
-//   2. Apply — given a code + subtotal, return the kobo savings.
-//      Called by /checkout/apply-discount (preview) and reused by
-//      initializeCheckoutService at order creation time.
-//
-// Atomic redemption tracking lives here too:
-//   - reserveRedemptionByCode: increments usedCount only if the cap
-//     hasn't been reached; returns false on overshoot. Called inside
-//     the initialize flow once we know we're persisting an order.
-//   - releaseRedemptionByCode: decrement; called when an order that
-//     reserved a redemption ultimately fails or gets cancelled.
-// ═══════════════════════════════════════════════════════════════
+// discount.service.ts — admin CRUD plus apply (code + subtotal to kobo savings), used by /checkout/apply-discount and order initialize.
+// reserveRedemptionByCode atomically increments usedCount under the cap, releaseRedemptionByCode decrements when a reserving order fails or cancels.
 
 import type { FilterQuery } from 'mongoose'
 import { Types } from 'mongoose'

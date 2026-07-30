@@ -1,24 +1,5 @@
-// ─────────────────────────────────────────────────────────────────────────
-// SKU computation.
-//
-// The admin never types a SKU. The server derives it deterministically from
-// the product slug + the variant's option values, in the order the product
-// declares its `optionTypes`. This guarantees:
-//
-//   - SKUs stay consistent across the catalogue.
-//   - Renaming an option value (Size "M" → "Medium") changes the SKU
-//     uniformly without any admin action.
-//   - Variant uniqueness check piggybacks on SKU uniqueness — duplicate
-//     option combinations produce duplicate SKUs.
-//
-// Examples
-//   slug=pack-of-5-pants, optionTypes=["Size"], options={Size: "M"}
-//     → PACK-OF-5-PANTS-M
-//   slug=single-pant, optionTypes=["Size","Color"], options={Size:"S",Color:"Black"}
-//     → SINGLE-PANT-S-BLACK
-//   slug=my-cycoo, optionTypes=[], options={}
-//     → MY-CYCOO
-// ─────────────────────────────────────────────────────────────────────────
+// SKU computation — the server derives SKUs from the product slug plus option values in optionTypes order, e.g. single-pant with Size S and Color Black gives SINGLE-PANT-S-BLACK.
+// Variant uniqueness piggybacks on SKU uniqueness, duplicate option combos produce duplicate SKUs.
 
 /** Strips non-alphanumerics and collapses to dashes. */
 export function skuToken(value: string): string {

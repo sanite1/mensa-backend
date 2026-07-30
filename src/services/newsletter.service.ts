@@ -1,12 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
-// newsletter.service.ts
-//
-// Subscribe / unsubscribe / admin list for newsletter signups.
-// Idempotent subscribe: re-submitting an email reactivates the
-// existing record rather than 409ing. Mailerlite sync is a future
-// post-MVP hook — we store `mailerliteId` so the integration can
-// drop in without a schema change.
-// ═══════════════════════════════════════════════════════════════
+// newsletter.service.ts — subscribe / unsubscribe / admin list. Subscribe is idempotent, resubmits reactivate instead of 409ing. mailerliteId is stored so a future Mailerlite sync needs no schema change.
 
 import crypto from 'crypto'
 import type { FilterQuery } from 'mongoose'
@@ -40,9 +32,7 @@ export const subscribeService = async (
   const existing = await NewsletterSubscriber.findOne({ email })
 
   if (existing) {
-    // Re-subscribe: a previously-unsubscribed record flips back to
-    // subscribed and the source updates to wherever they came in this
-    // time. Currently-subscribed records are a no-op.
+    // Re subscribe flips an unsubscribed record back and refreshes the source, already subscribed records are a no op.
     if (existing.status === 'unsubscribed') {
       existing.status = 'subscribed'
       existing.subscribedAt = new Date()

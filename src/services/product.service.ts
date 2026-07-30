@@ -177,9 +177,7 @@ export const updateProductService = async (
     product.slug = input.slug.toLowerCase().trim()
   }
 
-  // optionTypes is normalised first because it drives SKU computation. If
-  // the admin sent both, we honor the new value. Otherwise we keep what
-  // was already on the product.
+  // optionTypes is normalised first because it drives SKU computation, the new value wins when both are sent.
   if (input.optionTypes) {
     product.set('optionTypes', normaliseOptionTypes(input.optionTypes))
   }

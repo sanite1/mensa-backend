@@ -3,9 +3,7 @@ import mongoose from 'mongoose'
 import bcrypt from 'bcrypt'
 import { User } from '../models/User'
 
-// Seed script: creates the initial admin user from env vars, or resets the
-// existing admin's password + name to match .env. Safe to re-run — the
-// stored password hash is always brought in sync with SEED_ADMIN_PASSWORD.
+// Seed script: creates or resets the admin user from env vars, the stored hash is always re synced with SEED_ADMIN_PASSWORD. Safe to re run.
 // Run with: npm run seed:admin
 
 async function seed() {

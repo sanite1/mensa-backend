@@ -2,15 +2,7 @@ import type { Document, Types } from 'mongoose'
 
 // ── Status enums ─────────────────────────────────────────────────
 
-/** Individual partner application lifecycle.
- *  pending  -> submitted, awaiting admin review
- *  approved -> admin accepted, onboarding email sent, partner has not
- *              yet completed onboarding (no password / bank details).
- *  active   -> onboarding complete, partner can earn commission and
- *              request payouts.
- *  rejected -> admin declined; no portal access.
- *  suspended-> admin paused an active partner; no new accrual but
- *              past balance is preserved. */
+/** Application lifecycle: pending (awaiting review), approved (onboarding email sent, not yet onboarded), active (can earn and request payouts), rejected, suspended (no new accrual, balance preserved). */
 export type PartnerStatus =
   | 'pending'
   | 'approved'
@@ -18,23 +10,14 @@ export type PartnerStatus =
   | 'rejected'
   | 'suspended'
 
-/** Commission lifecycle for a single order.
- *  pending  -> order paid but not delivered. Counted as "expected"
- *              but not yet cashable.
- *  available-> order delivered, included in cashable balance.
- *  paid     -> bundled into a PayoutRequest that was marked paid.
- *  reversed -> order refunded or cancelled after accrual. */
+/** Commission lifecycle: pending (paid, not delivered), available (delivered, cashable), paid (bundled into a paid PayoutRequest), reversed (order refunded or cancelled after accrual). */
 export type PartnerCommissionStatus =
   | 'pending'
   | 'available'
   | 'paid'
   | 'reversed'
 
-/** Payout request lifecycle.
- *  pending  -> partner clicked "Cash out", awaiting admin payment.
- *  paid     -> admin paid manually outside the system and recorded a
- *              reference. Commissions linked to this payout flip to 'paid'.
- *  rejected -> admin declined (with reason). Commissions reset to 'available'. */
+/** Payout lifecycle: pending (awaiting admin), paid (recorded manually, linked commissions flip to paid), rejected (commissions reset to available). */
 export type PartnerPayoutStatus = 'pending' | 'paid' | 'rejected'
 
 // ── Bank details ─────────────────────────────────────────────────

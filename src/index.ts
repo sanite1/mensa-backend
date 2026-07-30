@@ -38,14 +38,7 @@ app.use(cors({
   ],
   credentials: true,
 }))
-// Capture the raw request body on any webhook-shaped path so the HMAC
-// verifier can recompute the signature against the exact bytes Paystack
-// sent (re-stringifying the parsed JSON would risk reordering keys and
-// breaking the comparison).
-//
-// We honour both the canonical mount (/api/v1/webhooks/*) and the legacy
-// alias (/api/payment/webhook/*) that some test integrations were pointed
-// at before the route was finalised.
+// Capture the raw body on webhook paths so the HMAC verifier checks the exact bytes Paystack sent. Covers the canonical mount and the legacy /api/payment/webhook alias.
 app.use(
   express.json({
     verify: (req, _res, buf) => {
@@ -81,9 +74,7 @@ app.use('/api/v1/admin', adminRouter)
 app.use('/api/v1/orders', orderRouter)
 app.use('/api/v1/checkout', checkoutRouter)
 app.use('/api/v1/webhooks', webhookRouter)
-// Legacy / convenience alias. Some Paystack dashboard configs point at
-// `/api/payment/webhook/paystack`; keep both alive so dashboard URL edits
-// aren't a prerequisite for testing.
+// Legacy alias, some Paystack dashboard configs still point at /api/payment/webhook/paystack.
 app.use('/api/payment/webhook', webhookRouter)
 app.use('/api/v1/users', userRouter)
 app.use('/api/v1/partners', partnerRouter)

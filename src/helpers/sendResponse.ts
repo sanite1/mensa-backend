@@ -6,11 +6,7 @@ export function sendResponse<T>(res: Response, response: ApiResponse<T>): void {
   res.status(response.statusCode).json(response)
 }
 
-/**
- * For auth flows. If the response carries a refreshToken in its data, set it
- * as the httpOnly cookie and strip it from the JSON body so the client never
- * sees the refresh token.
- */
+/** Auth flows: moves any refreshToken from the JSON body into the httpOnly cookie so the client never sees it. */
 export function sendAuthResponse<T extends { refreshToken?: string }>(
   res: Response,
   response: ApiResponse<T>,

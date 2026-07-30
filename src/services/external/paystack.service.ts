@@ -1,11 +1,4 @@
-// ─────────────────────────────────────────────────────────────────────────
-// Paystack service.
-//
-// Methods assert env keys are present at call time (rather than at import),
-// so the rest of the app boots fine in environments where Paystack isn't
-// configured yet. Auth header is rebuilt per request so dotenv loads
-// timing never bites us.
-// ─────────────────────────────────────────────────────────────────────────
+// Paystack service — env keys asserted at call time, not import, so the app boots without Paystack configured. Auth header is rebuilt per request to dodge dotenv timing.
 import axios from 'axios'
 import crypto from 'crypto'
 import { assertEnv } from '../../config/validateEnv'
@@ -83,16 +76,7 @@ export const paystackService = {
     })
   },
 
-  /**
-   * Verify a Paystack webhook signature. Paystack signs the raw request body
-   * with your **secret key** (not a separate webhook secret — that does not
-   * exist in their dashboard) using HMAC-SHA512. We recompute and compare in
-   * constant time.
-   *
-   * Returns false if either the secret key or the signature header is
-   * missing — caller should 200 the request anyway so Paystack doesn't
-   * indefinitely retry our misconfiguration.
-   */
+  /** Verify a webhook signature, HMAC SHA512 of the raw body with the secret key (Paystack has no separate webhook secret), compared in constant time. Returns false when the key or header is missing, caller should still 200 so Paystack stops retrying. */
   verifyWebhookSignature(rawBody: string, signature: string | undefined): boolean {
     const secret = process.env.PAYSTACK_SECRET_KEY
     if (!secret || !signature) return false

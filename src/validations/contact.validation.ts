@@ -17,9 +17,7 @@ export const validateSubmitContact = validate({
       'any.required': 'Pick a topic.',
       'any.only': 'Pick a valid topic.',
     }),
-    // Only relevant when topic is 'order'. We don't enforce the format
-    // strictly — accept anything that looks like a reference, so the
-    // visitor isn't blocked by a typo when they're already frustrated.
+    // Only relevant when topic is 'order'. Format is deliberately loose so a typo never blocks an already frustrated visitor.
     orderNumber: Joi.string().trim().max(40).allow(''),
     message: Joi.string().trim().min(10).max(4000).required().messages({
       'string.min': 'Message must be at least 10 characters.',

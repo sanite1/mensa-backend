@@ -1,20 +1,5 @@
-// ═══════════════════════════════════════════════════════════════
-// logger.ts — Winston logger.
-//
-// Console transport always.
-//
-// File transports (daily-rotate) only when we are running on a
-// server with a writable working directory and NODE_ENV=production.
-// Serverless platforms (Vercel, Netlify, Lambda) have a read-only
-// FS at /var/task/ and only allow writes to /tmp/ which doesn't
-// persist across invocations — so file logging there is both
-// broken and useless. Their runtime already captures stdout/stderr
-// into the log feed, which the Console transport handles for us.
-//
-// Toggle via the LOG_TO_FILE env var if you want to opt in / out
-// explicitly. Otherwise we auto-detect: enabled in production when
-// no known serverless marker is set, disabled otherwise.
-// ═══════════════════════════════════════════════════════════════
+// logger.ts — Winston logger. Console transport always, file transports (daily rotate) only in production on a writable FS.
+// Serverless runtimes (Vercel, Netlify, Lambda) have a read only FS, so file logging is skipped there, their platform already captures stdout. Override with LOG_TO_FILE.
 
 import winston from 'winston'
 import DailyRotateFile from 'winston-daily-rotate-file'
@@ -52,10 +37,7 @@ function isServerlessRuntime(): boolean {
   )
 }
 
-/** File logging is on when:
- *  - LOG_TO_FILE=true is set explicitly, OR
- *  - NODE_ENV=production AND we are not on a serverless runtime.
- *  Explicit LOG_TO_FILE=false always wins. */
+/** File logging: explicit LOG_TO_FILE wins, otherwise on in production when not serverless. */
 function shouldLogToFile(): boolean {
   const explicit = process.env.LOG_TO_FILE?.toLowerCase()
   if (explicit === 'true') return true

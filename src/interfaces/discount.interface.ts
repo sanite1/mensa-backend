@@ -1,14 +1,6 @@
 import type { Document, Types } from 'mongoose'
 
-/** A discount applies in exactly one of two ways:
- *  - `percent` : value is 0-100, deducts that % of the order subtotal
- *  - `fixed`   : value is in kobo, deducts that flat amount
- *
- *  We deliberately do not support stacked discounts in Sprint 4 — at most
- *  one code per order. Combining promos opens a long tail of edge cases
- *  (BOGO + percent + free-shipping interactions) that aren't worth the
- *  complexity until we see real promo strategy needs.
- */
+/** percent deducts 0 to 100 percent of the subtotal, fixed deducts a flat kobo amount. At most one code per order, stacking is deliberately unsupported. */
 export type DiscountType = 'percent' | 'fixed'
 
 export interface IDiscount {

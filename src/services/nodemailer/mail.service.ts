@@ -40,9 +40,7 @@ export async function sendMail(opts: {
   try {
     const html = compile(opts.template, opts.data)
 
-    // Gmail-via-app-password rewrites the From to the authenticated user
-    // and, in some accounts, silently dedupes a message whose To matches.
-    // Surface this at warn level so it's obvious from logs alone.
+    // Gmail app password auth rewrites From and can silently dedupe when To matches the authenticated user, warn so logs show it.
     const smtpUser = (process.env.SMTP_USER ?? '').toLowerCase().trim()
     if (smtpUser && smtpUser === opts.to.toLowerCase().trim()) {
       logger.warn(
@@ -69,9 +67,7 @@ export async function sendMail(opts: {
       )
     }
   } catch (err) {
-    // Surface the SMTP-side reason — most "no email arrived" reports trace
-    // back to a Gmail app-password mismatch or a from-address Gmail doesn't
-    // own. Logging the message + code makes it diagnosable from logs alone.
+    // Log the SMTP side reason, most "no email arrived" reports trace to a Gmail app password mismatch or an unowned from address.
     const e = err as { message?: string; code?: string; response?: string }
     logger.error(
       `Email failed: template=${opts.template} to=${opts.to} code=${e.code ?? '?'} msg=${e.message ?? '?'} resp=${e.response ?? '?'}`,

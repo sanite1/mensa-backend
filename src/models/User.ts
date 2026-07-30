@@ -23,9 +23,7 @@ const UserSchema = new Schema<IUser, UserModel>(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    // Hashing is the service layer's job (auth.service.ts) so seed scripts
-    // and reset-password flows can persist hashes without going through a
-    // pre-save hook — pre-save doesn't fire on updateOne / findOneAndUpdate.
+    // Hashing is the service layer's job, pre save hooks don't fire on updateOne / findOneAndUpdate.
     passwordHash: { type: String, required: true, select: false },
     phone: { type: String, required: true, trim: true },
     role: {

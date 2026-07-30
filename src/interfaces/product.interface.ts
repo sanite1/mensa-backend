@@ -80,10 +80,7 @@ export interface IProduct {
   basePriceB2B: number
   /** Sale price in kobo. null when not on sale. */
   salePrice: number | null
-  /** Ordered list of option types for this product. e.g. `["Size"]` or
-   *  `["Size", "Color"]`. Empty for single-variant products. The order
-   *  determines the order of selectors on the PDP and the order in which
-   *  values appear in the computed SKU. */
+  /** Ordered option types, e.g. ["Size", "Color"], empty for single variant products. Order drives the PDP selectors and SKU value order. */
   optionTypes: string[]
   images: IProductImage[]
   variants: IProductVariant[]
@@ -93,15 +90,9 @@ export interface IProduct {
   /** When false, the product is hidden from the public storefront entirely
    *  (acts as a soft delete). Admin still sees it. */
   isActive: boolean
-  /** When true, the product remains visible on the storefront but is
-   *  rendered as sold out and add-to-bag is disabled — regardless of the
-   *  actual variant `stockCount`. Lets admin pause sales without zeroing
-   *  inventory. */
+  /** When true the product shows as sold out and add to bag is disabled regardless of stockCount, so admin can pause sales without zeroing inventory. */
   isSoldOut: boolean
-  /** When true, the PDP renders a "Size guide" link that opens the
-   *  pants size-chart dialog. Off by default since most products
-   *  (pads, education) don't need sizing help — admin opts in per
-   *  product. */
+  /** When true the PDP renders a "Size guide" link opening the pants size chart dialog, admin opts in per product. */
   showSizeGuide: boolean
   createdAt: Date
   updatedAt: Date

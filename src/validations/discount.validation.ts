@@ -21,9 +21,7 @@ const type = Joi.string().valid('percent', 'fixed').messages({
   'any.only': 'Type must be either percent or fixed.',
 })
 
-// Value validation is type-aware: percent 1-100, fixed >= 1 kobo.
-// We let Mongoose model-level validation enforce the percent range too,
-// but reject it at the edge for a cleaner 422.
+// Type aware: percent 1 to 100, fixed >= 1 kobo. Mongoose validates the range too, but rejecting at the edge gives a cleaner 422.
 const value = Joi.alternatives().conditional('type', {
   is: 'percent',
   then: Joi.number().integer().min(1).max(100).required().messages({

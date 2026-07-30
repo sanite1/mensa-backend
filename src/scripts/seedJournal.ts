@@ -1,13 +1,5 @@
-// ═══════════════════════════════════════════════════════════════
-// seedJournal.ts
-//
-// Idempotent upsert of a starter set of journal + education posts.
-// Lets the public /journal page have content to render before the
-// editorial team uses the admin Content CMS to add real ones.
-//
-// Re-running this script updates the same slugs in place — never
-// duplicates. Run with: npm run seed:journal
-// ═══════════════════════════════════════════════════════════════
+// seedJournal.ts — idempotent upsert of starter journal and education posts, re running updates the same slugs in place.
+// Run with: npm run seed:journal
 
 import 'dotenv/config'
 import mongoose from 'mongoose'
@@ -42,11 +34,11 @@ const POSTS: SeedPost[] = [
     excerpt:
       'Comfort, dignity, and a five year wear. A founder note on choosing reusables for Nigerian women and what it took to get the first batch out of our studio.',
     body: [
-      '## A studio in Kubwa',
+      '## A studio in Abuja',
       '',
       'We started Mensa with one sewing machine and a question. Could we make a period product that felt better than every disposable we had used, and lasted longer than any single use pack we had bought?',
       '',
-      'The answer took eighteen months, three rounds of patternmaking, and a lot of conversations with the women in our lives. Our mums. Our sisters. The girls who came through our friend\'s NGO and told us what was missing.',
+      "The answer took eighteen months, three rounds of patternmaking, and a lot of conversations with the women in our lives. Our mums. Our sisters. The girls who came through our friend's NGO and told us what was missing.",
       '',
       '## Built for the days we actually live',
       '',
@@ -176,7 +168,8 @@ const POSTS: SeedPost[] = [
     slug: 'menstrual-health-in-the-classroom',
     kind: 'education',
     eyebrow: 'For educators',
-    title: 'What schools in Abuja get wrong about menstrual health, and what we are doing about it.',
+    title:
+      'What schools in Abuja get wrong about menstrual health, and what we are doing about it.',
     category: 'classroom',
     excerpt:
       'Most school menstrual education in Nigeria is a one off chat with the nurse. We built a 40 minute classroom session and a card deck to do it better.',

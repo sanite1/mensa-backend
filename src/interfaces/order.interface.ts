@@ -173,10 +173,7 @@ export interface InitializeCheckoutInput {
   /** Selected rate amount in kobo (must match an option returned by /shipping-rates). */
   shippingAmount: number
   discountCode?: string
-  /** Partner referral code captured from `?ref=` in the URL, persisted in
-   *  localStorage and forwarded here. We resolve it server-side; an
-   *  invalid / inactive code is silently dropped so checkout never fails
-   *  because of a stale referral. */
+  /** Partner referral code from ?ref=, resolved server side. Invalid or inactive codes are silently dropped so checkout never fails on a stale referral. */
   referralCode?: string
 }
 
@@ -198,13 +195,7 @@ export interface ListOrdersQuery {
   pageSize?: number
 }
 
-/** Body for PATCH /admin/orders/:id/fulfilment.
- *
- *  Admin can move the order forward through the fulfilment lifecycle
- *  (pending → processing → shipped → delivered) or cancel an order that
- *  has not yet shipped. When transitioning to `shipped`, an optional
- *  trackingCode / trackingUrl can be supplied — useful for in-house
- *  rider orders where Sendbox never generated one. */
+/** Body for PATCH /admin/orders/:id/fulfilment. Moves the order forward through the lifecycle or cancels before shipping. On shipped, optional trackingCode / trackingUrl covers in house rider orders. */
 export interface UpdateOrderFulfilmentInput {
   status: FulfilmentStatus
   trackingCode?: string

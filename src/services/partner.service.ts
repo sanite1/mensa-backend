@@ -1,20 +1,5 @@
-// ═══════════════════════════════════════════════════════════════
-// partner.service.ts
-//
-// Individual partner (referral / affiliate) lifecycle:
-//   apply -> admin approve -> onboarding email -> partner sets
-//   password + bank + referral code -> active -> earns commission
-//   on every paid order referencing their code, requests payouts.
-//
-// Commission lifecycle is hooked into order.service:
-//   - order paid          ->  accrueCommissionOnOrderPaid
-//   - order delivered     ->  markCommissionAvailableForOrder
-//   - order cancelled /
-//     refunded            ->  reverseCommissionForOrder
-//
-// Balance aggregates (pending/available/lifetime) are denormalised
-// onto the Partner document so the dashboard reads in one query.
-// ═══════════════════════════════════════════════════════════════
+// partner.service.ts — individual partner (referral) lifecycle: apply, admin approve, onboarding (password, bank, code), active, earns commission, requests payouts.
+// Commission hooks from order.service: paid accrues, delivered makes available, cancelled or refunded reverses. Balances are denormalised onto Partner for one query dashboards.
 
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
@@ -67,9 +52,7 @@ const generateReferralCode = (): string =>
   crypto.randomBytes(4).toString('hex').toUpperCase()
 
 const isReservedSlug = (code: string): boolean => {
-  // Avoid codes that clash with sensitive paths or look like words a
-  // partner could exploit. Keep the list short — admins can always
-  // override via the admin tool.
+  // Avoid codes clashing with sensitive paths or exploitable words, admins can override via the admin tool.
   const reserved = new Set([
     'admin',
     'login',
@@ -83,9 +66,7 @@ const isReservedSlug = (code: string): boolean => {
   return reserved.has(code.toLowerCase())
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  Public: apply
-// ═══════════════════════════════════════════════════════════════
+// ── Public: apply ────────────────────────────────────────────────
 
 export const applyAsPartnerService = async (
   input: ApplyPartnerInput,
@@ -113,14 +94,9 @@ export const applyAsPartnerService = async (
   return new ApiResponse(201, 'Application received.', { partner })
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  Public: onboarding (verify + complete)
-// ═══════════════════════════════════════════════════════════════
+// ── Public: onboarding (verify + complete) ───────────────────────
 
-/** Verify an onboarding token and return the partner shell so the
- *  client can render a "Welcome, {name}" page before we ask for
- *  credentials. Throws if the token is invalid, expired, or already
- *  consumed. */
+/** Verify an onboarding token and return the partner shell for the welcome page. Throws if the token is invalid, expired, or already consumed. */
 export const verifyOnboardingTokenService = async (
   token: string,
 ): Promise<
@@ -144,10 +120,7 @@ export const verifyOnboardingTokenService = async (
   })
 }
 
-/** Complete the onboarding: set the partner's password on the linked
- *  User, write bank details, set referral code, flip to active. Returns
- *  enough metadata that the client can then call /auth/login with the
- *  email + chosen password. */
+/** Complete onboarding: set the password on the linked User, write bank details and referral code, flip to active. */
 export const completePartnerOnboardingService = async (
   token: string,
   input: CompletePartnerOnboardingInput,
@@ -236,9 +209,7 @@ export const completePartnerOnboardingService = async (
   })
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  Authed: partner self (dashboard, request payout, update bank)
-// ═══════════════════════════════════════════════════════════════
+// ── Authed: partner self (dashboard, request payout, update bank) ──
 
 export interface PartnerSelfDashboard {
   partner: {
@@ -344,10 +315,7 @@ export const getPartnerSelfDashboardService = async (
   })
 }
 
-/** Partner self-service: update payout bank account. Activated partners
- *  only — orgs in 'pending' / 'approved' status can't be here yet, and
- *  'rejected' / 'suspended' partners shouldn't be editing payout
- *  destinations. */
+/** Update the payout bank account, active partners only, other statuses shouldn't be editing payout destinations. */
 export const updatePartnerBankAccountService = async (
   userId: string,
   input: IPartnerBankAccount,
@@ -428,9 +396,7 @@ export const requestPartnerPayoutService = async (
   })
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  Admin: list / get / approve / reject / update
-// ═══════════════════════════════════════════════════════════════
+// ── Admin: list / get / approve / reject / update ────────────────
 
 export interface AdminListPartnersResult {
   items: PartnerDocument[]
@@ -496,10 +462,7 @@ export const adminApprovePartnerService = async (
     throw new ApiError(409, 'Partner was rejected. Re-applying is required.')
   }
 
-  // Reuse an existing user with this email if one is already on the
-  // platform — common case is a customer who applies to be a partner.
-  // Promote their role to 'partner'. Otherwise create a fresh user
-  // with no password set (the onboarding flow installs one).
+  // Reuse an existing user with this email (commonly a customer) and promote to 'partner', else create a passwordless user for onboarding to fill in.
   let user = await User.findOne({ email: partner.email })
   if (!user) {
     user = await User.create({
@@ -514,10 +477,7 @@ export const adminApprovePartnerService = async (
     user.role = 'partner'
     await user.save()
   }
-  // Other roles (admin, b2b_*) we leave alone to avoid privilege
-  // mixing. The partner can still receive commissions but they sign
-  // in with their existing credentials and won't see the onboarding
-  // password step.
+  // Other roles (admin, b2b_*) are left alone to avoid privilege mixing, they keep their credentials and skip the onboarding password step.
 
   // Mint a single-use onboarding token.
   const token = crypto.randomBytes(32).toString('hex')
@@ -538,9 +498,7 @@ export const adminApprovePartnerService = async (
 
   const onboardingUrl = `${process.env.FRONTEND_PLATFORM_URL}/partner/onboarding?token=${token}`
 
-  // Send the approval email. We swallow failures so admins don't
-  // see a partner stuck in a weird half-approved state if SMTP hiccups
-  // — the link can always be resent from the admin tool later.
+  // Send the approval email, swallowing failures so an SMTP hiccup doesn't strand the partner, the link can be resent from the admin tool.
   try {
     await sendMail({
       to: partner.email,
@@ -610,9 +568,7 @@ export const adminUpdatePartnerService = async (
   return new ApiResponse(200, 'Partner updated.', { partner })
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  Admin: payouts
-// ═══════════════════════════════════════════════════════════════
+// ── Admin: payouts ───────────────────────────────────────────────
 
 export interface AdminPayoutListItem {
   _id: string
@@ -720,9 +676,7 @@ export const adminMarkPayoutPaidService = async (
     { $inc: { lifetimePaidKobo: payout.amountKobo } },
   )
 
-  // Best-effort confirmation email so the partner has a receipt with
-  // the bank reference. Failure is logged but doesn't roll back the
-  // ledger update — the bank transfer already went out.
+  // Best effort confirmation email with the bank reference, failure never rolls back the ledger, the transfer already went out.
   try {
     const partner = (await Partner.findById(payout.partnerId)) as PartnerDocument | null
     if (partner?.email) {
@@ -792,9 +746,7 @@ export const adminRejectPayoutService = async (
   return new ApiResponse(200, 'Payout request rejected.', { payoutRequest: payout })
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  Commission lifecycle (called from order.service)
-// ═══════════════════════════════════════════════════════════════
+// ── Commission lifecycle (called from order.service) ─────────────
 
 /** Look up an active partner by referral code. Returns null on any
  *  miss so callers can ignore quietly (we never break checkout because
@@ -883,23 +835,7 @@ export const markCommissionAvailableForOrder = async (
   )
 }
 
-/** Order cancelled / refunded — reverse the commission, regardless of
- *  what bucket it sat in:
- *
- *   - pending   -> subtract from pendingBalanceKobo
- *   - available -> subtract from availableBalanceKobo
- *   - paid      -> we already paid the partner. Subtract from
- *                  availableBalanceKobo too, which goes NEGATIVE.
- *                  Future earnings net against this deficit before
- *                  the partner can cash out again. This is the
- *                  automatic claw-back.
- *
- *  In every case lifetimeEarnedKobo decrements to reflect that the
- *  commission was never legitimately earned. lifetimePaidKobo is
- *  historical and never modified — money out the door stays out the
- *  door for accounting purposes.
- *
- *  Already-reversed commissions are skipped (idempotent). */
+/** Reverse the commission on cancel or refund. Pending docks pendingBalanceKobo, available and paid dock availableBalanceKobo, which may go negative (the automatic claw back, netted against future earnings). lifetimeEarnedKobo decrements, lifetimePaidKobo is historical and never modified. Idempotent, already reversed commissions are skipped. */
 export const reverseCommissionForOrder = async (
   order: OrderDocument,
   reason: string,
@@ -916,9 +852,7 @@ export const reverseCommissionForOrder = async (
   commission.reversedReason = reason
   await commission.save()
 
-  // Pending lives in pendingBalanceKobo; both 'available' and 'paid'
-  // dock against availableBalanceKobo (which is allowed to go negative
-  // — see model comment).
+  // Pending lives in pendingBalanceKobo, available and paid dock availableBalanceKobo (allowed to go negative, see model comment).
   const balanceField =
     previousStatus === 'pending' ? 'pendingBalanceKobo' : 'availableBalanceKobo'
   await Partner.updateOne(

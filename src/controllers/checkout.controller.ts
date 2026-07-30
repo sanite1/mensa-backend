@@ -35,11 +35,7 @@ export const initializeCheckout: ExpressFunction<InitializeCheckoutInput> = asyn
   }
 }
 
-/* ── POST /checkout/verify/:reference ──
- *
- * Called by the confirmation page on mount. We ask Paystack directly
- * whether the reference completed, then reconcile locally — no waiting
- * on the webhook. */
+/* ── POST /checkout/verify/:reference — confirmation page asks Paystack directly and reconciles locally, no waiting on the webhook. ── */
 export const verifyCheckout: ExpressFunction<unknown, { reference: string }> = async (
   req,
   res,

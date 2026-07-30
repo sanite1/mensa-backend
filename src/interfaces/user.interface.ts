@@ -2,10 +2,7 @@ import type { Document, Types } from 'mongoose'
 
 export type UserRole = 'customer' | 'admin' | 'b2b_admin' | 'b2b_member' | 'partner'
 
-/** A saved delivery address on the customer's profile. Mirrors the
- *  checkout address shape so it can prefill checkout directly. Distinct
- *  from the address snapshotted onto an order (orders keep their own
- *  immutable copy so editing a saved address never rewrites history). */
+/** Saved delivery address, mirrors the checkout shape for prefill. Orders snapshot their own immutable copy, so edits here never rewrite history. */
 export interface IUserAddress {
   _id?: Types.ObjectId
   /** Optional friendly tag, e.g. "Home", "Office". */

@@ -1,9 +1,7 @@
 import { cloudinary } from '../../config/cloudinary'
 import { assertEnv } from '../../config/validateEnv'
 
-// ── Guards: every public method asserts the keys are set so a missing
-//    .env value produces a meaningful runtime error rather than an opaque
-//    SDK crash. ──
+// ── Guards: every public method asserts keys so a missing env fails meaningfully, not as an opaque SDK crash. ──
 const REQUIRED_KEYS = [
   'CLOUDINARY_CLOUD_NAME',
   'CLOUDINARY_API_KEY',
@@ -30,10 +28,7 @@ export interface CloudinaryUploadOptions {
 }
 
 export const cloudinaryService = {
-  /**
-   * Uploads a buffer to Cloudinary via the streaming API. Designed to pair
-   * with Multer's memoryStorage so the file never hits disk.
-   */
+  /** Streams a buffer to Cloudinary, pairs with Multer memoryStorage so files never hit disk. */
   async upload(
     buffer: Buffer,
     options: CloudinaryUploadOptions,
@@ -72,11 +67,7 @@ export const cloudinaryService = {
     })
   },
 
-  /**
-   * Removes an asset by its full public_id (folder prefix included, no extension).
-   * Safe to call for assets that no longer exist; Cloudinary returns `not found`
-   * but no exception is thrown.
-   */
+  /** Deletes by full public_id. Safe for missing assets, Cloudinary returns not found without throwing. */
   async delete(publicId: string): Promise<void> {
     assertEnv([...REQUIRED_KEYS], 'Cloudinary')
     await cloudinary.uploader.destroy(publicId)

@@ -16,10 +16,7 @@ const CORE_REQUIRED = [
   'FRONTEND_ADMIN_URL',
 ] as const
 
-// ── Feature-gated envs: warned at boot, throw only when the relevant
-//    feature service is actually called (Cloudinary upload, Paystack
-//    init, Sendbox quote). Lets you build auth/Sprint 1 without filling
-//    in keys for later sprints. ──
+// ── Feature gated envs: warned at boot, thrown only when the feature service is actually called, so early sprints run without later keys. ──
 const FEATURE_GATED: Record<string, string[]> = {
   Cloudinary: ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'],
   Paystack: ['PAYSTACK_SECRET_KEY', 'PAYSTACK_PUBLIC_KEY'],
@@ -47,11 +44,7 @@ export function validateEnv(): void {
   }
 }
 
-/**
- * Use inside a feature service (e.g. cloudinaryService.upload) to assert that
- * the required envs were filled. Produces a clean ApiError-shaped runtime
- * error rather than a silent SDK crash if the keys are blank.
- */
+/** Assert required envs inside a feature service, producing a clean ApiError instead of a silent SDK crash. */
 export function assertEnv(keys: string[], feature: string): void {
   const missing = keys.filter((key) => !process.env[key])
   if (missing.length > 0) {

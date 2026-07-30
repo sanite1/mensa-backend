@@ -1,14 +1,5 @@
-// ═══════════════════════════════════════════════════════════════
-// user.service.ts
-//
-// Right now this owns the customer address book (saved delivery
-// addresses). User profile editing, B2B org linking, etc. will land
-// here as the customer dashboard grows.
-//
-// Invariant: at most one address per user has isDefault=true. The
-// service enforces this when adding / updating, NOT the model — a
-// mongoose pre-save hook on a sub-doc array gets messy with $push.
-// ═══════════════════════════════════════════════════════════════
+// user.service.ts — owns the customer address book, more customer dashboard features land here later.
+// Invariant: at most one address per user has isDefault=true, enforced in the service not the model, subdoc pre save hooks get messy with $push.
 
 import { Types } from 'mongoose'
 
@@ -78,10 +69,7 @@ export const addMyAddressService = async (
 
   const next = normaliseAddress(input)
 
-  // Dedupe: if this exact address already exists, return it instead of
-  // creating a clone. This is what makes the checkout-save flow idempotent
-  // (customer placing repeat orders to the same address never grows the
-  // book).
+  // Dedupe: return an existing identical address instead of cloning, keeps the checkout save flow idempotent.
   const fp = addressFingerprint(next)
   const existing = user.addresses.find((a) => addressFingerprint(a) === fp)
   if (existing) {

@@ -11,9 +11,7 @@ import type {
   ProductVariantInput,
 } from '../interfaces/product.interface'
 
-// Seed script: idempotent upsert of the launch catalogue (8 SKUs).
-// Re-running updates fields in place. Images are left empty so the admin
-// can upload via the dashboard once Cloudinary assets are ready.
+// Seed script: idempotent upsert of the launch catalogue (8 SKUs), images left empty for admin upload via the dashboard.
 // Run with: npm run seed:products
 
 const PANTS_SIZES = ['S', 'M', 'L', 'XL', '2XL']
