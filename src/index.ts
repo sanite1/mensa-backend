@@ -24,6 +24,7 @@ import newsletterRouter from './routes/newsletter.routes'
 import contactRouter from './routes/contact.routes'
 import contentRouter from './routes/content.routes'
 import b2bRouter from './routes/b2b/b2b.routes'
+import sitemapRouter from './routes/sitemap.routes'
 
 validateEnv()
 
@@ -82,6 +83,8 @@ app.use('/api/v1/newsletter', newsletterRouter)
 app.use('/api/v1/contact', contactRouter)
 app.use('/api/v1/content', contentRouter)
 app.use('/api/v1/b2b', b2bRouter)
+// Dynamic content sitemap, served at the root so the frontend can rewrite to it.
+app.use('/', sitemapRouter)
 
 app.use(globalErrorHandler)
 
