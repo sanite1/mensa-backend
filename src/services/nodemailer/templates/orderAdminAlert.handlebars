@@ -1,0 +1,88 @@
+{{#> layout title="New paid order"}}
+  <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#8A7C70;">
+    Order {{orderNumber}} · {{paidAt}}
+  </p>
+  <h1 style="margin:0 0 16px 0;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:400;font-size:28px;line-height:1.2;color:#1A1410;">
+    New paid order from {{customerName}}.
+  </h1>
+  <p style="margin:0 0 24px 0;font-size:14px;line-height:1.6;color:#4F433B;">
+    Payment is confirmed. The order is ready to be processed.
+  </p>
+
+  {{!-- Customer + delivery details --}}
+  <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 24px 0;border-collapse:collapse;">
+    <tr>
+      <td style="padding:6px 0;color:#8A7C70;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;width:120px;vertical-align:top;">Customer</td>
+      <td style="padding:6px 0;color:#1A1410;font-size:14px;">{{customerName}}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 0;color:#8A7C70;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;vertical-align:top;">Email</td>
+      <td style="padding:6px 0;color:#1A1410;font-size:14px;"><a href="mailto:{{customerEmail}}" style="color:#1A1410;">{{customerEmail}}</a></td>
+    </tr>
+    {{#if phone}}
+    <tr>
+      <td style="padding:6px 0;color:#8A7C70;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;vertical-align:top;">Phone</td>
+      <td style="padding:6px 0;color:#1A1410;font-size:14px;">{{phone}}</td>
+    </tr>
+    {{/if}}
+    <tr>
+      <td style="padding:6px 0;color:#8A7C70;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;vertical-align:top;">Deliver to</td>
+      <td style="padding:6px 0;color:#1A1410;font-size:14px;line-height:1.5;">{{deliveryAddress}}</td>
+    </tr>
+    {{#if discountCode}}
+    <tr>
+      <td style="padding:6px 0;color:#8A7C70;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;vertical-align:top;">Discount</td>
+      <td style="padding:6px 0;color:#1A1410;font-family:'DM Mono','Courier New',monospace;font-size:13px;">{{discountCode}}</td>
+    </tr>
+    {{/if}}
+  </table>
+
+  {{!-- Line items --}}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+         style="width:100%;border-collapse:collapse;border-spacing:0;margin:0 0 24px 0;border-top:1px solid #E7DCCC;">
+    {{#each lines}}
+      <tr>
+        <td valign="top" align="left" width="70%"
+            style="width:70%;padding:12px 12px 12px 0;border-bottom:1px solid #F1E8DA;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#1A1410;vertical-align:top;text-align:left;">
+          <div style="font-weight:600;line-height:1.3;">{{name}}</div>
+          {{#if variant}}
+            <div style="margin-top:4px;font-size:13px;color:#8A7C70;line-height:1.3;">{{variant}}</div>
+          {{/if}}
+          <div style="margin-top:4px;font-size:13px;color:#8A7C70;line-height:1.3;">Qty {{qty}}</div>
+        </td>
+        <td valign="top" align="right" width="30%"
+            style="width:30%;padding:12px 0 12px 12px;border-bottom:1px solid #F1E8DA;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#1A1410;vertical-align:top;text-align:right;white-space:nowrap;">
+          {{lineTotal}}
+        </td>
+      </tr>
+    {{/each}}
+  </table>
+
+  {{!-- Totals --}}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+         style="width:100%;border-collapse:collapse;border-spacing:0;margin:0 0 24px 0;">
+    <tr>
+      <td align="left" width="70%" style="width:70%;padding:4px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#4F433B;text-align:left;">Subtotal</td>
+      <td align="right" width="30%" style="width:30%;padding:4px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#4F433B;text-align:right;white-space:nowrap;">{{subtotal}}</td>
+    </tr>
+    <tr>
+      <td align="left" width="70%" style="width:70%;padding:4px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#4F433B;text-align:left;">Shipping</td>
+      <td align="right" width="30%" style="width:30%;padding:4px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#4F433B;text-align:right;white-space:nowrap;">{{shipping}}</td>
+    </tr>
+    <tr>
+      <td align="left" width="70%" style="width:70%;padding:8px 0 0 0;border-top:1px solid #E7DCCC;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:700;color:#1A1410;text-align:left;">Total</td>
+      <td align="right" width="30%" style="width:30%;padding:8px 0 0 0;border-top:1px solid #E7DCCC;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:700;color:#1A1410;text-align:right;white-space:nowrap;">{{total}}</td>
+    </tr>
+  </table>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0;">
+    <tr>
+      <td style="background:#FE718E;border-radius:4px;">
+        <a href="{{adminOrderUrl}}"
+           style="display:inline-block;padding:12px 24px;font-family:Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:#FFFCF6;text-decoration:none;">
+          Open in the dashboard
+        </a>
+      </td>
+    </tr>
+  </table>
+{{/layout}}

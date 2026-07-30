@@ -151,6 +151,13 @@ router.delete(
 )
 
 // ── Content posts ────────────────────────────────────────────────
+// Standalone cover upload (multipart). Registered before the :id routes
+// so "upload-image" can never be captured as a post id.
+router.post(
+  '/content/upload-image',
+  upload.single('image'),
+  contentController.adminUploadContentImage,
+)
 router.get('/content', validateListContent, contentController.adminListContent)
 router.get('/content/:id', validateContentIdParam, contentController.adminGetContent)
 router.post('/content', validateCreateContent, contentController.adminCreateContent)

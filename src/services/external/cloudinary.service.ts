@@ -88,5 +88,6 @@ export const cloudinaryFolders = {
   product: (slug: string) => `mensa/products/${slug}`,
   contentJournal: (slug: string) => `mensa/content/journal/${slug}`,
   contentEducation: (slug: string) => `mensa/content/education/${slug}`,
+  contentCovers: () => 'mensa/content/covers',
   brand: () => 'mensa/brand',
 }

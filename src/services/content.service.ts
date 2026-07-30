@@ -12,6 +12,7 @@ import { Types } from 'mongoose'
 import { ContentPost } from '../models/ContentPost'
 import { ApiError } from '../errors/apiError'
 import { ApiResponse } from '../errors/apiResponse'
+import { cloudinaryService, cloudinaryFolders } from './external/cloudinary.service'
 import type {
   ContentPostDocument,
   CreateContentPostInput,
@@ -183,4 +184,22 @@ export const adminDeleteContentService = async (
   const post = await ContentPost.findByIdAndDelete(id)
   if (!post) throw new ApiError(404, 'Post not found.')
   return new ApiResponse(200, 'Post deleted.', { id })
+}
+
+// ─── Admin: upload cover image ──────────────────────────────────
+// Standalone upload (not tied to a saved post) so the editor can attach
+// a cover before the post is ever created. Returns the hosted URL +
+// publicId; the editor then submits them inside the post's coverImage.
+export const adminUploadContentImageService = async (file: {
+  buffer: Buffer
+  mimetype: string
+}): Promise<ApiResponse<{ url: string; publicId: string }>> => {
+  const uploaded = await cloudinaryService.upload(file.buffer, {
+    folder: cloudinaryFolders.contentCovers(),
+    mimetype: file.mimetype,
+  })
+  return new ApiResponse(201, 'Image uploaded.', {
+    url: uploaded.url,
+    publicId: uploaded.publicId,
+  })
 }

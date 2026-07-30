@@ -1,5 +1,6 @@
 // content controller — thin request handlers, delegates to content.service
 import { sendResponse } from '../helpers/sendResponse'
+import { ApiError } from '../errors/apiError'
 import * as contentService from '../services/content.service'
 import type { ExpressFunction } from '../interfaces/express.interface'
 import type {
@@ -93,6 +94,20 @@ export const adminDeleteContent: ExpressFunction<unknown, { id: string }> = asyn
 ) => {
   try {
     const response = await contentService.adminDeleteContentService(req.params.id)
+    sendResponse(res, response)
+  } catch (error) {
+    next(error)
+  }
+}
+
+/* ── POST /admin/content/upload-image ── (admin, multipart) */
+export const adminUploadContentImage: ExpressFunction = async (req, res, next) => {
+  try {
+    if (!req.file) throw new ApiError(400, 'No image was uploaded.')
+    const response = await contentService.adminUploadContentImageService({
+      buffer: req.file.buffer,
+      mimetype: req.file.mimetype,
+    })
     sendResponse(res, response)
   } catch (error) {
     next(error)
