@@ -42,7 +42,7 @@ const POSTS: SeedPost[] = [
     excerpt:
       'Comfort, dignity, and a five year wear. A founder note on choosing reusables for Nigerian women and what it took to get the first batch out of our studio.',
     body: [
-      '## A studio in Wuse II',
+      '## A studio in Kubwa',
       '',
       'We started Mensa with one sewing machine and a question. Could we make a period product that felt better than every disposable we had used, and lasted longer than any single use pack we had bought?',
       '',
