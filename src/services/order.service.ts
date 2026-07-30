@@ -513,6 +513,60 @@ export const markOrderPaidService = async (
     // Should not happen — sendMail swallows internally — but belt and braces.
     logger.error(`[markOrderPaid] sendMail threw unexpectedly`, err)
   }
+
+  // Notify the admin inbox so new orders surface without dashboard
+  // polling. Best-effort like the customer email — a broken alert must
+  // never block the webhook.
+  try {
+    const adminTo =
+      process.env.ADMIN_NOTIFICATION_EMAIL ??
+      process.env.SUPPORT_EMAIL ??
+      process.env.SMTP_FROM
+    if (!adminTo) {
+      logger.warn('[markOrderPaid] no admin notification address configured; skipping alert.')
+    } else {
+      const addressLine = [
+        order.address.line1,
+        order.address.line2,
+        order.address.city,
+        order.address.state,
+        order.address.country,
+      ]
+        .filter(Boolean)
+        .join(', ')
+
+      await sendMail({
+        to: adminTo,
+        subject: `[Order] ${order.orderNumber} · ${formatNaira(order.totals.total)} · ${order.address.fullName ?? order.customerEmail}`,
+        template: 'orderAdminAlert',
+        data: {
+          orderNumber: order.orderNumber,
+          paidAt: new Date().toLocaleString('en-NG', {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          }),
+          customerName: order.address.fullName || order.customerEmail,
+          customerEmail: order.customerEmail,
+          phone: order.address.phone || null,
+          deliveryAddress: addressLine,
+          discountCode: order.discountCode || null,
+          lines: order.lines.map((l) => ({
+            name: l.productName,
+            variant: l.variantLabel,
+            qty: l.qty,
+            lineTotal: formatNaira(l.lineTotal),
+          })),
+          subtotal: formatNaira(order.totals.subtotal),
+          shipping: formatNaira(order.totals.shipping),
+          total: formatNaira(order.totals.total),
+          adminOrderUrl: `${process.env.FRONTEND_ADMIN_URL}/orders/${order._id}`,
+        },
+      })
+      logger.info(`[markOrderPaid] admin alert dispatched to=${adminTo}`)
+    }
+  } catch (err) {
+    logger.error(`[markOrderPaid] admin alert threw unexpectedly`, err)
+  }
 }
 
 /** Mark an order as failed and release the stock it reserved. */
