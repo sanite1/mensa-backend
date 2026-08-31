@@ -99,6 +99,20 @@ export const deleteProduct: ExpressFunction<unknown, { slug: string }> = async (
   }
 }
 
+/* ── Admin: permanent delete ──────────────────────────────────────── */
+export const permanentlyDeleteProduct: ExpressFunction<unknown, { slug: string }> = async (
+  req,
+  res,
+  next,
+) => {
+  try {
+    const response = await service.permanentlyDeleteProductService(req.params.slug)
+    sendResponse(res, response)
+  } catch (error) {
+    next(error)
+  }
+}
+
 /* ── Admin: add image (multipart) ─────────────────────────────────── */
 export const addProductImage: ExpressFunction<{ alt?: string }, { slug: string }> = async (
   req,

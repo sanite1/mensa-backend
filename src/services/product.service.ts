@@ -249,6 +249,29 @@ export const deleteProductService = async (slug: string): Promise<ApiResponse> =
   return new ApiResponse(200, 'Product archived.')
 }
 
+/* ─── Admin: permanent delete ──────────────────────────────────────── */
+// Removes the product document entirely. Past orders are unaffected, order
+// lines carry denormalised name/price snapshots. Cloudinary cleanup is best
+// effort so a CDN hiccup never blocks the delete.
+export const permanentlyDeleteProductService = async (slug: string): Promise<ApiResponse> => {
+  const product = (await Product.findOne({
+    slug: slug.toLowerCase().trim(),
+  })) as ProductDocument | null
+  if (!product) throw new ApiError(404, 'Product not found.')
+
+  for (const image of product.images ?? []) {
+    if (!image.publicId) continue
+    try {
+      await cloudinaryService.delete(image.publicId)
+    } catch {
+      // Best effort only.
+    }
+  }
+
+  await product.deleteOne()
+  return new ApiResponse(200, 'Product deleted permanently.')
+}
+
 /* ─── Admin: add image ─────────────────────────────────────────────── */
 export const addProductImageService = async (
   slug: string,

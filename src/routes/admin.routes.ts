@@ -92,6 +92,12 @@ router.delete(
   validateProductSlugParam,
   productController.deleteProduct,
 )
+// Permanent delete, removes the document and its Cloudinary images.
+router.delete(
+  '/products/:slug/permanent',
+  validateProductSlugParam,
+  productController.permanentlyDeleteProduct,
+)
 
 // Image management (multipart for upload, json for reorder/remove)
 router.post(
