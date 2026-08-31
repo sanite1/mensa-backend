@@ -32,13 +32,22 @@ const app = express()
 const PORT = process.env.PORT ?? 5000
 
 app.use(helmet())
-app.use(cors({
-  origin: [
-    process.env.FRONTEND_PLATFORM_URL!,
-    process.env.FRONTEND_ADMIN_URL!,
-  ],
-  credentials: true,
-}))
+// CORS_ORIGIN is a comma separated list of allowed origins (localhost + live
+// domains). Falls back to the two FRONTEND_*_URL vars when unset.
+const corsOrigins = (
+  process.env.CORS_ORIGIN ??
+  [process.env.FRONTEND_PLATFORM_URL, process.env.FRONTEND_ADMIN_URL].filter(Boolean).join(',')
+)
+  .split(',')
+  .map((o) => o.trim().replace(/\/$/, ''))
+  .filter(Boolean)
+
+app.use(
+  cors({
+    origin: corsOrigins,
+    credentials: true,
+  }),
+)
 // Capture the raw body on webhook paths so the HMAC verifier checks the exact bytes Paystack sent. Covers the canonical mount and the legacy /api/payment/webhook alias.
 app.use(
   express.json({
