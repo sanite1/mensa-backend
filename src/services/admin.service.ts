@@ -322,8 +322,10 @@ export const adminListCustomersService = async (
   const page = Math.max(1, params.page ?? 1)
   const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, params.pageSize ?? DEFAULT_PAGE_SIZE))
 
-  const filter: FilterQuery<IUser> = {}
-  if (params.role) filter.role = params.role
+  // Staff accounts are not customers, exclude admins unless explicitly asked for.
+  const filter: FilterQuery<IUser> = params.role
+    ? { role: params.role }
+    : { role: { $ne: 'admin' } }
 
   const q = params.q?.trim()
   if (q) {
