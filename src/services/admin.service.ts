@@ -132,6 +132,157 @@ export const adminStatsService = async (): Promise<ApiResponse<AdminStats>> => {
   })
 }
 
+// ── Reports: charts + summaries for the dashboard ────────────────
+
+export interface AdminReportDay {
+  date: string
+  revenueKobo: number
+  orders: number
+}
+
+export interface AdminReportStatusRow {
+  status: string
+  count: number
+}
+
+export interface AdminReportProductRow {
+  productName: string
+  units: number
+  revenueKobo: number
+}
+
+export interface AdminReportCategoryRow {
+  category: string
+  revenueKobo: number
+}
+
+export interface AdminReports {
+  days: number
+  summary: {
+    totalRevenueKobo: number
+    totalPaidOrders: number
+    avgOrderValueKobo: number
+    windowRevenueKobo: number
+    windowOrders: number
+    totalCustomers: number
+  }
+  revenueByDay: AdminReportDay[]
+  ordersByStatus: AdminReportStatusRow[]
+  topProducts: AdminReportProductRow[]
+  categoryRevenue: AdminReportCategoryRow[]
+}
+
+export const adminReportsService = async (
+  daysParam?: number,
+): Promise<ApiResponse<AdminReports>> => {
+  const days = Math.min(365, Math.max(7, daysParam ?? 30))
+  const windowStart = new Date()
+  windowStart.setDate(windowStart.getDate() - (days - 1))
+  windowStart.setHours(0, 0, 0, 0)
+
+  const paidInWindow = {
+    'payment.status': 'paid',
+    'payment.paidAt': { $gte: windowStart },
+  }
+
+  const [byDayAgg, statusAgg, productAgg, categoryAgg, allTimeAgg, totalCustomers] =
+    await Promise.all([
+      Order.aggregate<{ _id: string; revenueKobo: number; orders: number }>([
+        { $match: paidInWindow },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$payment.paidAt' } },
+            revenueKobo: { $sum: '$totals.total' },
+            orders: { $sum: 1 },
+          },
+        },
+      ]),
+      Order.aggregate<{ _id: string; count: number }>([
+        { $match: paidInWindow },
+        { $group: { _id: '$fulfilment.status', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]),
+      Order.aggregate<{ _id: string; units: number; revenueKobo: number }>([
+        { $match: paidInWindow },
+        { $unwind: '$lines' },
+        {
+          $group: {
+            _id: '$lines.productName',
+            units: { $sum: '$lines.qty' },
+            revenueKobo: { $sum: '$lines.lineTotal' },
+          },
+        },
+        { $sort: { revenueKobo: -1 } },
+        { $limit: 8 },
+      ]),
+      Order.aggregate<{ _id: string; revenueKobo: number }>([
+        { $match: paidInWindow },
+        { $unwind: '$lines' },
+        {
+          $lookup: {
+            from: 'products',
+            localField: 'lines.productId',
+            foreignField: '_id',
+            as: 'product',
+          },
+        },
+        { $unwind: { path: '$product', preserveNullAndEmptyArrays: true } },
+        {
+          $group: {
+            _id: { $ifNull: ['$product.category', 'other'] },
+            revenueKobo: { $sum: '$lines.lineTotal' },
+          },
+        },
+        { $sort: { revenueKobo: -1 } },
+      ]),
+      Order.aggregate<{ _id: null; total: number; orders: number }>([
+        { $match: { 'payment.status': 'paid' } },
+        { $group: { _id: null, total: { $sum: '$totals.total' }, orders: { $sum: 1 } } },
+      ]),
+      User.countDocuments({ role: 'customer' }),
+    ])
+
+  // Fill every day in the window so the chart has a continuous axis.
+  const byDayMap = new Map(byDayAgg.map((r) => [r._id, r]))
+  const revenueByDay: AdminReportDay[] = []
+  for (let i = 0; i < days; i++) {
+    const d = new Date(windowStart)
+    d.setDate(windowStart.getDate() + i)
+    const key = d.toISOString().slice(0, 10)
+    const row = byDayMap.get(key)
+    revenueByDay.push({
+      date: key,
+      revenueKobo: row?.revenueKobo ?? 0,
+      orders: row?.orders ?? 0,
+    })
+  }
+
+  const totalRevenueKobo = allTimeAgg[0]?.total ?? 0
+  const totalPaidOrders = allTimeAgg[0]?.orders ?? 0
+  const windowRevenueKobo = revenueByDay.reduce((s, r) => s + r.revenueKobo, 0)
+  const windowOrders = revenueByDay.reduce((s, r) => s + r.orders, 0)
+
+  return new ApiResponse(200, 'OK.', {
+    days,
+    summary: {
+      totalRevenueKobo,
+      totalPaidOrders,
+      avgOrderValueKobo: totalPaidOrders > 0 ? Math.round(totalRevenueKobo / totalPaidOrders) : 0,
+      windowRevenueKobo,
+      windowOrders,
+      totalCustomers,
+    },
+    revenueByDay,
+    ordersByStatus: statusAgg.map((r) => ({ status: r._id ?? 'unknown', count: r.count })),
+    topProducts: productAgg.map((r) => ({
+      productName: r._id,
+      units: r.units,
+      revenueKobo: r.revenueKobo,
+    })),
+    categoryRevenue: categoryAgg.map((r) => ({ category: r._id, revenueKobo: r.revenueKobo })),
+  })
+}
+
 // ── Customers (admin): list + detail ─────────────────────────────
 
 const DEFAULT_PAGE_SIZE = 20

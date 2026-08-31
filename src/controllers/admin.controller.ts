@@ -14,6 +14,19 @@ export const getAdminStats: ExpressFunction = async (_req, res, next) => {
   }
 }
 
+/* ── GET /admin/reports ── (admin only) */
+export const getAdminReports: ExpressFunction = async (req, res, next) => {
+  try {
+    const days = req.query.days ? Number(req.query.days) : undefined
+    const response = await adminService.adminReportsService(
+      Number.isFinite(days) ? days : undefined,
+    )
+    sendResponse(res, response)
+  } catch (error) {
+    next(error)
+  }
+}
+
 /* ── GET /admin/customers ── (admin only) */
 export const adminListCustomers: ExpressFunction = async (req, res, next) => {
   try {

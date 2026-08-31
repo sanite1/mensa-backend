@@ -68,6 +68,7 @@ router.use(authenticatedMiddleWare, isAdmin, authedLimiter)
 
 // ── Dashboard ─────────────────────────────────────────────────────
 router.get('/stats', adminController.getAdminStats)
+router.get('/reports', adminController.getAdminReports)
 
 // ── Customers ─────────────────────────────────────────────────────
 router.get('/customers', validateListCustomers, adminController.adminListCustomers)
