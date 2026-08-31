@@ -38,7 +38,11 @@ export function refreshCookieOptions(): CookieOptions {
   return {
     httpOnly: true,
     secure: isProd,
-    sameSite: 'lax',
+    // Production runs the frontend and API on different sites, and 'lax'
+    // cookies are not sent on cross site XHR, which silently killed the
+    // refresh flow (users were logged out when the access token expired).
+    // 'none' requires secure, so dev (http) stays on 'lax'.
+    sameSite: isProd ? 'none' : 'lax',
     path: '/api/v1/auth',
     maxAge: REFRESH_TOKEN_TTL_MS,
     domain: process.env.REFRESH_COOKIE_DOMAIN || undefined,
