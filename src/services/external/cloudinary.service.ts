@@ -1,5 +1,5 @@
 import { cloudinary } from '../../config/cloudinary'
-import { assertEnv } from '../../config/validateEnv'
+import { ApiError } from '../../errors/apiError'
 
 // ── Guards: every public method asserts keys so a missing env fails meaningfully, not as an opaque SDK crash. ──
 const REQUIRED_KEYS = [
@@ -7,6 +7,18 @@ const REQUIRED_KEYS = [
   'CLOUDINARY_API_KEY',
   'CLOUDINARY_API_SECRET',
 ] as const
+
+// ApiError (not a bare Error) so the admin sees an actionable message
+// instead of a generic 500 when the deployment is missing the keys.
+function assertCloudinaryEnv(): void {
+  const missing = REQUIRED_KEYS.filter((key) => !process.env[key])
+  if (missing.length > 0) {
+    throw new ApiError(
+      500,
+      `Image uploads are not configured on this server. Missing environment variables: ${missing.join(', ')}.`,
+    )
+  }
+}
 
 export interface CloudinaryUploadResult {
   url: string
@@ -33,7 +45,7 @@ export const cloudinaryService = {
     buffer: Buffer,
     options: CloudinaryUploadOptions,
   ): Promise<CloudinaryUploadResult> {
-    assertEnv([...REQUIRED_KEYS], 'Cloudinary')
+    assertCloudinaryEnv()
     return new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
@@ -45,12 +57,11 @@ export const cloudinaryService = {
         (error, result) => {
           if (error || !result) {
             // Cloudinary rejects with a plain object like {message, http_code, name}.
-            // Wrap into a real Error so downstream logging + error handling work.
+            // Surface it as an ApiError so the admin sees the real reason
+            // (invalid key, oversize, etc.) instead of a generic 500.
             const raw = error as { message?: string; http_code?: number; name?: string } | undefined
             const message = raw?.message ?? 'Cloudinary upload returned no result'
-            const wrapped = new Error(`Cloudinary upload failed: ${message}`)
-            if (raw?.http_code) (wrapped as Error & { httpCode?: number }).httpCode = raw.http_code
-            reject(wrapped)
+            reject(new ApiError(502, `Image upload failed: ${message}`))
             return
           }
           resolve({
@@ -69,7 +80,7 @@ export const cloudinaryService = {
 
   /** Deletes by full public_id. Safe for missing assets, Cloudinary returns not found without throwing. */
   async delete(publicId: string): Promise<void> {
-    assertEnv([...REQUIRED_KEYS], 'Cloudinary')
+    assertCloudinaryEnv()
     await cloudinary.uploader.destroy(publicId)
   },
 }
