@@ -36,17 +36,32 @@ function toAuthUser(user: UserDocument): AuthUser {
   }
 }
 
+// Sessions are one refresh hash per device, capped at the last 8. A login or
+// rotation only touches its own entry, so signing in on a second device (or
+// the admin console and the storefront at once) never kills the first.
+const MAX_SESSIONS = 8
+
 async function issueTokens(
   userId: string,
   role: UserRole,
   b2bOrgId: string | null,
+  replaceHash?: string,
 ): Promise<{ accessToken: string; refreshToken: string }> {
   const jti = newJti()
   const accessToken = signAccessToken({ userId, role, ...(b2bOrgId ? { b2bOrgId } : {}) })
   const refreshToken = signRefreshToken({ userId, jti })
+  const newHash = hashRefreshToken(refreshToken)
+
+  if (replaceHash) {
+    // Rotation: drop the presented hash, then add the new one.
+    await User.updateOne({ _id: userId }, { $pull: { refreshTokenHashes: replaceHash } })
+  }
   await User.updateOne(
     { _id: userId },
-    { $set: { refreshTokenHash: hashRefreshToken(refreshToken), lastLoginAt: new Date() } },
+    {
+      $push: { refreshTokenHashes: { $each: [newHash], $slice: -MAX_SESSIONS } },
+      $set: { lastLoginAt: new Date() },
+    },
   )
   return { accessToken, refreshToken }
 }
@@ -115,19 +130,29 @@ export const refreshService = async (
   }
 
   const user = (await User.findById(payload.userId).select(
-    '+refreshTokenHash',
+    '+refreshTokenHash +refreshTokenHashes',
   )) as UserDocument | null
   if (!user) throw new ApiError(401, 'Your session is no longer valid.')
 
   const presentedHash = hashRefreshToken(refreshToken)
-  if (!user.refreshTokenHash || user.refreshTokenHash !== presentedHash) {
-    // Token rotated or revoked. Defensively clear the stored hash.
-    await User.updateOne({ _id: user._id }, { $set: { refreshTokenHash: null } })
+  const inSessions = (user.refreshTokenHashes ?? []).includes(presentedHash)
+  const matchesLegacy = !!user.refreshTokenHash && user.refreshTokenHash === presentedHash
+  if (!inSessions && !matchesLegacy) {
+    // Unknown token: reject it, but never revoke the user's other sessions.
     throw new ApiError(401, 'Your session is no longer valid.')
+  }
+  if (matchesLegacy) {
+    // Migrate the pre multi-session hash out of the legacy field.
+    await User.updateOne({ _id: user._id }, { $set: { refreshTokenHash: null } })
   }
 
   const b2bOrgId = user.b2bOrgId ? user.b2bOrgId.toString() : null
-  const tokens = await issueTokens(String(user._id), user.role, b2bOrgId)
+  const tokens = await issueTokens(
+    String(user._id),
+    user.role,
+    b2bOrgId,
+    inSessions ? presentedHash : undefined,
+  )
 
   return new ApiResponse(200, 'Token refreshed.', {
     user: toAuthUser(user),
@@ -141,7 +166,14 @@ export const logoutService = async (refreshToken: string | undefined): Promise<A
   if (refreshToken) {
     try {
       const payload = verifyRefreshToken(refreshToken)
-      await User.updateOne({ _id: payload.userId }, { $set: { refreshTokenHash: null } })
+      // End only this device's session, leave the user's other sessions alive.
+      await User.updateOne(
+        { _id: payload.userId },
+        {
+          $pull: { refreshTokenHashes: hashRefreshToken(refreshToken) },
+          $set: { refreshTokenHash: null },
+        },
+      )
     } catch {
       // Token already invalid — nothing to do.
     }

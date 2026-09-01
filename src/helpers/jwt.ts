@@ -3,7 +3,10 @@ import crypto from 'crypto'
 import type { CookieOptions } from 'express'
 import type { AccessTokenPayload, RefreshTokenPayload } from '../interfaces/auth.interface'
 
-const ACCESS_TOKEN_TTL: SignOptions['expiresIn'] = '15m'
+// Override with JWT_ACCESS_TTL (e.g. '8h', '1d'). A working day by default so
+// admins are not bounced mid session if the silent refresh ever fails.
+const ACCESS_TOKEN_TTL: SignOptions['expiresIn'] = (process.env.JWT_ACCESS_TTL ??
+  '8h') as SignOptions['expiresIn']
 const REFRESH_TOKEN_TTL: SignOptions['expiresIn'] = '30d'
 const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000
 

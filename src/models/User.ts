@@ -35,6 +35,10 @@ const UserSchema = new Schema<IUser, UserModel>(
     addresses: { type: [AddressSchema], default: [] },
     emailVerified: { type: Boolean, default: false },
     refreshTokenHash: { type: String, default: null, select: false },
+    // One hash per active session (device/browser), capped in issueTokens.
+    // The legacy single refreshTokenHash above is still read for sessions
+    // issued before this field existed.
+    refreshTokenHashes: { type: [String], default: [], select: false },
     lastLoginAt: { type: Date, default: null },
     resetPasswordTokenHash: { type: String, default: null, select: false },
     resetPasswordExpires: { type: Date, default: null, select: false },

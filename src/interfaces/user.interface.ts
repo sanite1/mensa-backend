@@ -34,6 +34,7 @@ export interface IUser {
   /** SHA-256 of the active refresh token. Cleared on logout / rotated on
    *  refresh. select:false on the schema. */
   refreshTokenHash?: string | null
+  refreshTokenHashes?: string[]
   lastLoginAt?: Date | null
   /** SHA-256 of the active forgot-password reset token. select:false. */
   resetPasswordTokenHash?: string | null
