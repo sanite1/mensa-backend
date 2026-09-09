@@ -10,12 +10,14 @@ const REQUIRED_KEYS = [
 
 // ApiError (not a bare Error) so the admin sees an actionable message
 // instead of a generic 500 when the deployment is missing the keys.
+// A single CLOUDINARY_URL also satisfies the check, the SDK parses it itself.
 function assertCloudinaryEnv(): void {
+  if (process.env.CLOUDINARY_URL) return
   const missing = REQUIRED_KEYS.filter((key) => !process.env[key])
   if (missing.length > 0) {
     throw new ApiError(
       500,
-      `Image uploads are not configured on this server. Missing environment variables: ${missing.join(', ')}.`,
+      `Image uploads are not configured on this server. Missing environment variables: ${missing.join(', ')} (or set CLOUDINARY_URL).`,
     )
   }
 }
