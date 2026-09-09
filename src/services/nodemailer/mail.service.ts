@@ -40,16 +40,6 @@ export async function sendMail(opts: {
   try {
     const html = compile(opts.template, opts.data)
 
-    // Gmail app password auth rewrites From and can silently dedupe when To matches the authenticated user, warn so logs show it.
-    const smtpUser = (process.env.SMTP_USER ?? '').toLowerCase().trim()
-    if (smtpUser && smtpUser === opts.to.toLowerCase().trim()) {
-      logger.warn(
-        `[sendMail] to=${opts.to} matches SMTP_USER. Gmail can quietly drop ` +
-          `self-sends or merge them into your existing thread — if the email ` +
-          `does not arrive, try a different test recipient or check All Mail.`,
-      )
-    }
-
     const info = await transporter.sendMail({
       from: process.env.SMTP_FROM,
       to: opts.to,
@@ -67,7 +57,7 @@ export async function sendMail(opts: {
       )
     }
   } catch (err) {
-    // Log the SMTP side reason, most "no email arrived" reports trace to a Gmail app password mismatch or an unowned from address.
+    // Log the SMTP side reason, most "no email arrived" reports trace to a bad app password or a From address the SMTP account does not own (Zoho rejects those with 553 relaying disallowed).
     const e = err as { message?: string; code?: string; response?: string }
     logger.error(
       `Email failed: template=${opts.template} to=${opts.to} code=${e.code ?? '?'} msg=${e.message ?? '?'} resp=${e.response ?? '?'}`,
