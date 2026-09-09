@@ -25,6 +25,7 @@ import {
   reverseCommissionForOrder,
 } from './partner.service'
 import { markLeadOrderedService } from './lead.service'
+import { formatEtaDays, quoteShippingOptions } from './shipping.service'
 import { logger } from '../config/logger'
 import type {
   CheckoutLineInput,
@@ -170,9 +171,27 @@ async function restoreStockFor(lines: IOrderLine[]): Promise<void> {
   }
 }
 
-const IN_HOUSE_STATES = new Set(['FCT', 'Abuja', 'Lagos'])
+/** Lenient subtotal for the rates quote: sums what it can and skips broken
+ *  lines, so a stock hiccup never blocks showing delivery options. The
+ *  strict snapshot at initialize recomputes the same number for valid carts,
+ *  which keeps the free delivery threshold consistent across both calls. */
+async function computeSubtotalLenient(lines: CheckoutLineInput[]): Promise<number> {
+  let subtotal = 0
+  for (const line of lines) {
+    if (line.qty < 1 || !Types.ObjectId.isValid(line.productId)) continue
+    const product = (await Product.findById(line.productId)) as ProductDocument | null
+    if (!product || !product.isActive) continue
+    const variant = product.variants.find((v) => String(v._id) === line.variantId)
+    if (!variant) continue
+    const unitPrice = variant.b2cPriceOverride ?? product.salePrice ?? product.basePriceB2C
+    subtotal += unitPrice * line.qty
+  }
+  return subtotal
+}
 
 // ─── Public: shipping rates ───────────────────────────────────────
+// Options come from the admin managed shipping settings. An empty list is a
+// valid answer, it means no option covers the destination state.
 export const getShippingRatesService = async (
   input: ShippingRatesInput,
 ): Promise<ApiResponse<{ options: ShippingRateOption[] }>> => {
@@ -183,17 +202,17 @@ export const getShippingRatesService = async (
     throw new ApiError(422, 'Delivery state is required.')
   }
 
-  const rates = await sendboxService.getRates({
-    destinationState: input.destination.state,
-    destinationCity: input.destination.city,
-    weightKg: ESTIMATED_PARCEL_KG,
+  const subtotal = await computeSubtotalLenient(input.lines)
+  const quotes = await quoteShippingOptions({
+    state: input.destination.state,
+    subtotalKobo: subtotal,
   })
 
-  const options: ShippingRateOption[] = rates.map((r) => ({
-    method: r.serviceId === 'inhouse-rider' ? 'inhouse' : 'sendbox',
-    name: r.name,
-    eta: `${r.etaMin} to ${r.etaMax} ${r.etaMin === r.etaMax ? 'day' : 'days'}`,
-    amount: r.feeKobo,
+  const options: ShippingRateOption[] = quotes.map((q) => ({
+    method: q.id,
+    name: q.name,
+    eta: formatEtaDays(q.etaMinDays, q.etaMaxDays),
+    amount: q.feeKobo,
   }))
 
   return new ApiResponse(200, 'OK.', { options })
@@ -219,27 +238,20 @@ export const initializeCheckoutService = async (
     throw new ApiError(422, 'Order subtotal is zero.')
   }
 
-  // 2. Verify the shipping amount the client sent matches a real rate for
-  //    this destination + method. Prevents tampering with the price.
-  const rates = await sendboxService.getRates({
-    destinationState: input.address.state,
-    destinationCity: input.address.city,
-    weightKg: ESTIMATED_PARCEL_KG,
+  // 2. Verify the delivery option and amount the client sent against the
+  //    same admin managed settings the rates quote used. Prevents tampering
+  //    with the price and catches settings edits mid checkout.
+  const quotes = await quoteShippingOptions({
+    state: input.address.state,
+    subtotalKobo: subtotal,
   })
-  const matchingRate = rates.find((r) => {
-    const inferredMethod = r.serviceId === 'inhouse-rider' ? 'inhouse' : 'sendbox'
-    return inferredMethod === input.shippingMethod && r.feeKobo === input.shippingAmount
-  })
+  const matchingRate = quotes.find(
+    (q) => q.id === input.shippingMethod && q.feeKobo === input.shippingAmount,
+  )
   if (!matchingRate) {
     throw new ApiError(
       422,
-      'The selected shipping option is no longer available. Refresh and pick again.',
-    )
-  }
-  if (input.shippingMethod === 'inhouse' && !IN_HOUSE_STATES.has(input.address.state)) {
-    throw new ApiError(
-      422,
-      'In-house delivery is only available in FCT, Abuja, and Lagos.',
+      'The selected delivery option is no longer available. Refresh and pick again.',
     )
   }
 
@@ -254,11 +266,12 @@ export const initializeCheckoutService = async (
       appliedDiscountCode = discount.code
     }
   }
+  const shippingKobo = matchingRate.feeKobo
   const totals = {
     subtotal,
-    shipping: matchingRate.feeKobo,
+    shipping: shippingKobo,
     discount: discountKobo,
-    total: Math.max(0, subtotal + matchingRate.feeKobo - discountKobo),
+    total: Math.max(0, subtotal + shippingKobo - discountKobo),
   }
   if (totals.total <= 0) {
     throw new ApiError(
@@ -315,7 +328,14 @@ export const initializeCheckoutService = async (
       address,
       totals,
       payment: { status: 'pending', reference: orderNumber },
-      fulfilment: { status: 'pending', shippingMethod: input.shippingMethod },
+      fulfilment: {
+        status: 'pending',
+        shippingMethod: matchingRate.id,
+        // Snapshot the option's label and ETA, the settings can change later.
+        shippingLabel: matchingRate.name,
+        shippingEtaMinDays: matchingRate.etaMinDays,
+        shippingEtaMaxDays: matchingRate.etaMaxDays,
+      },
       discountCode: appliedDiscountCode ?? undefined,
       referralCode: appliedReferralCode,
     })) as OrderDocument
@@ -411,7 +431,9 @@ export const markOrderPaidService = async (
   if (paystackPayload) order.payment.lastWebhookPayload = paystackPayload
   order.fulfilment.status = 'processing'
 
-  // Create shipment for Sendbox method (or stub when key is absent).
+  // Legacy: pre settings orders stored method 'sendbox' and get an automatic
+  // shipment. New orders carry an admin defined option id, fulfilment is
+  // handled manually through the admin order flow.
   if (order.fulfilment.shippingMethod === 'sendbox') {
     try {
       const shipment = await sendboxService.createShipment({

@@ -9,7 +9,6 @@ import type {
   IOrderTotals,
   OrderSource,
   PaymentStatus,
-  ShippingMethod,
 } from '../interfaces/order.interface'
 
 type OrderModel = Model<IOrder>
@@ -91,11 +90,11 @@ const FulfilmentSchema = new Schema<IOrderFulfilment>(
       default: 'pending',
       index: true,
     },
-    shippingMethod: {
-      type: String,
-      enum: ['inhouse', 'sendbox'] satisfies ShippingMethod[],
-      required: true,
-    },
+    // Admin defined delivery option id ('inhouse' / 'sendbox' on legacy orders).
+    shippingMethod: { type: String, required: true, trim: true },
+    shippingLabel: { type: String, trim: true },
+    shippingEtaMinDays: { type: Number, min: 0 },
+    shippingEtaMaxDays: { type: Number, min: 0 },
     trackingCode: { type: String },
     trackingUrl: { type: String },
     shippedAt: { type: Date },

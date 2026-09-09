@@ -101,9 +101,10 @@ export const validateInitializeCheckout = validate({
         'string.pattern.base': 'Please enter a valid phone number.',
         'any.required': 'Phone number is required.',
       }),
-    shippingMethod: Joi.string().valid('inhouse', 'sendbox').required().messages({
-      'any.only': 'Pick a valid shipping method.',
-      'any.required': 'Pick a shipping method.',
+    // Id of the admin defined delivery option returned by /shipping-rates.
+    shippingMethod: Joi.string().trim().min(1).max(120).required().messages({
+      'any.required': 'Pick a delivery option.',
+      'string.empty': 'Pick a delivery option.',
     }),
     shippingAmount: Joi.number().integer().min(0).required().messages({
       'any.required': 'Shipping amount is required.',

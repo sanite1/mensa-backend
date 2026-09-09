@@ -16,7 +16,9 @@ export type FulfilmentStatus =
   | 'delivered'
   | 'cancelled'
 
-export type ShippingMethod = 'inhouse' | 'sendbox'
+/** The id of the admin defined delivery option the customer picked.
+ *  Legacy orders carry the old 'inhouse' / 'sendbox' literals. */
+export type ShippingMethod = string
 
 export type OrderSource = 'web' | 'manual' | 'imported'
 
@@ -84,7 +86,13 @@ export interface IOrderPayment {
 export interface IOrderFulfilment {
   status: FulfilmentStatus
   shippingMethod: ShippingMethod
-  /** Sendbox tracking code (when shippingMethod = 'sendbox'). */
+  /** Display name of the delivery option, frozen at order time so later
+   *  settings edits never rewrite order history. */
+  shippingLabel?: string
+  /** Promised delivery window in days, frozen at order time. */
+  shippingEtaMinDays?: number
+  shippingEtaMaxDays?: number
+  /** Courier tracking code. */
   trackingCode?: string
   trackingUrl?: string
   shippedAt?: Date

@@ -66,6 +66,8 @@ import {
   validateLeadIdParam,
   validateUpdateLeadStatus,
 } from '../validations/lead.validation'
+import * as shippingController from '../controllers/shipping.controller'
+import { validateUpdateShippingSettings } from '../validations/shipping.validation'
 
 const router = Router()
 
@@ -233,6 +235,14 @@ router.delete(
   '/newsletter/subscribers/:id',
   validateSubscriberIdParam,
   newsletterController.adminDeleteSubscriber,
+)
+
+// ── Shipping settings ───────────────────────────────────────────
+router.get('/shipping-settings', shippingController.adminGetShippingSettings)
+router.put(
+  '/shipping-settings',
+  validateUpdateShippingSettings,
+  shippingController.adminUpdateShippingSettings,
 )
 
 // ── Starter set leads ───────────────────────────────────────────
