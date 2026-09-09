@@ -60,6 +60,12 @@ import {
   validateAdminListSubscribers,
   validateSubscriberIdParam,
 } from '../validations/newsletter.validation'
+import * as leadController from '../controllers/lead.controller'
+import {
+  validateAdminListLeads,
+  validateLeadIdParam,
+  validateUpdateLeadStatus,
+} from '../validations/lead.validation'
 
 const router = Router()
 
@@ -228,6 +234,15 @@ router.delete(
   validateSubscriberIdParam,
   newsletterController.adminDeleteSubscriber,
 )
+
+// ── Starter set leads ───────────────────────────────────────────
+router.get('/leads', validateAdminListLeads, leadController.adminListLeads)
+router.patch(
+  '/leads/:id',
+  validateUpdateLeadStatus,
+  leadController.adminUpdateLeadStatus,
+)
+router.delete('/leads/:id', validateLeadIdParam, leadController.adminDeleteLead)
 
 // B2B organisation partnerships (apply / list / verify)
 router.get(

@@ -24,6 +24,7 @@ import {
   resolveActivePartnerByCode,
   reverseCommissionForOrder,
 } from './partner.service'
+import { markLeadOrderedService } from './lead.service'
 import { logger } from '../config/logger'
 import type {
   CheckoutLineInput,
@@ -537,6 +538,14 @@ export const markOrderPaidService = async (
     }
   } catch (err) {
     logger.error(`[markOrderPaid] admin alert threw unexpectedly`, err)
+  }
+
+  // Convert a starter set finder lead with this email. Best effort, a lead
+  // bookkeeping failure must never block the webhook.
+  try {
+    await markLeadOrderedService(order.customerEmail, order.orderNumber)
+  } catch (err) {
+    logger.error(`[markOrderPaid] lead conversion update failed for ${reference}`, err)
   }
 }
 
