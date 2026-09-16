@@ -68,6 +68,15 @@ import {
 } from '../validations/lead.validation'
 import * as shippingController from '../controllers/shipping.controller'
 import { validateUpdateShippingSettings } from '../validations/shipping.validation'
+import * as invoiceController from '../controllers/invoice.controller'
+import {
+  validateCreateInvoice,
+  validateInvoiceIdParam,
+  validateListInvoices,
+  validateSearchInvoiceProducts,
+  validateUpdateInvoice,
+  validateUpdateInvoiceSettings,
+} from '../validations/invoice.validation'
 
 const router = Router()
 
@@ -244,6 +253,26 @@ router.put(
   validateUpdateShippingSettings,
   shippingController.adminUpdateShippingSettings,
 )
+
+// ── Invoices ────────────────────────────────────────────────────
+// Static sub paths first so "products" and "settings" never resolve as an :id.
+router.get(
+  '/invoices/products',
+  validateSearchInvoiceProducts,
+  invoiceController.adminSearchInvoiceProducts,
+)
+router.get('/invoices/settings', invoiceController.adminGetInvoiceSettings)
+router.put(
+  '/invoices/settings',
+  validateUpdateInvoiceSettings,
+  invoiceController.adminUpdateInvoiceSettings,
+)
+router.get('/invoices', validateListInvoices, invoiceController.adminListInvoices)
+router.post('/invoices', validateCreateInvoice, invoiceController.adminCreateInvoice)
+router.get('/invoices/:id', validateInvoiceIdParam, invoiceController.adminGetInvoice)
+router.put('/invoices/:id', validateUpdateInvoice, invoiceController.adminUpdateInvoice)
+router.post('/invoices/:id/send', validateInvoiceIdParam, invoiceController.adminSendInvoice)
+router.post('/invoices/:id/void', validateInvoiceIdParam, invoiceController.adminVoidInvoice)
 
 // ── Starter set leads ───────────────────────────────────────────
 router.get('/leads', validateAdminListLeads, leadController.adminListLeads)
