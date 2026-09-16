@@ -48,13 +48,7 @@ const address = Joi.object({
   postal: Joi.string().trim().max(20).allow(''),
 })
 
-const orderStatus = Joi.string().valid(
-  'pending',
-  'paid',
-  'failed',
-  'refunded',
-  'partial_refund',
-)
+const orderStatus = Joi.string().valid('pending', 'paid', 'failed', 'refunded', 'partial_refund')
 const fulfilmentStatus = Joi.string().valid(
   'pending',
   'processing',
@@ -141,8 +135,7 @@ export const validateUpdateOrderFulfilment = validate({
   }),
   body: Joi.object({
     status: fulfilmentStatus.required().messages({
-      'any.only':
-        'Status must be one of pending, processing, shipped, delivered, cancelled.',
+      'any.only': 'Status must be one of pending, processing, shipped, delivered, cancelled.',
       'any.required': 'Status is required.',
     }),
     trackingCode: Joi.string().trim().max(120).allow(''),
@@ -189,14 +182,16 @@ export const validateTrackOrder = validate({
 })
 
 // ── POST /webhooks/paystack/dev-fire ──────────────────────────────────
+// Accepts order references and invoice references (any payment attempt).
 export const validateDevFireWebhook = validate({
   body: Joi.object({
     reference: Joi.string()
       .trim()
-      .pattern(/^MS-\d{4}-\d{5}$/)
+      .pattern(/^(MS-\d{4}-\d{5}|INV-\d{4}-\d{5}(-A\d+)?)$/)
       .required()
       .messages({
-        'string.pattern.base': 'Reference must be a Mensa order number (MS-YYYY-NNNNN).',
+        'string.pattern.base':
+          'Reference must be an order number (MS-YYYY-NNNNN) or an invoice number (INV-YYYY-NNNNN).',
         'any.required': 'Reference is required.',
       }),
     event: Joi.string().valid('charge.success', 'charge.failed').default('charge.success'),
