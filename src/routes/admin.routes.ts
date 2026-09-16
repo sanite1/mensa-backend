@@ -273,6 +273,11 @@ router.get('/invoices/:id', validateInvoiceIdParam, invoiceController.adminGetIn
 router.put('/invoices/:id', validateUpdateInvoice, invoiceController.adminUpdateInvoice)
 router.post('/invoices/:id/send', validateInvoiceIdParam, invoiceController.adminSendInvoice)
 router.post('/invoices/:id/void', validateInvoiceIdParam, invoiceController.adminVoidInvoice)
+router.post(
+  '/invoices/:id/remind',
+  validateInvoiceIdParam,
+  invoiceController.adminRemindInvoice,
+)
 
 // ── Starter set leads ───────────────────────────────────────────
 router.get('/leads', validateAdminListLeads, leadController.adminListLeads)

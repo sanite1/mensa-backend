@@ -15,6 +15,7 @@ import { ApiError } from '../errors/apiError'
 import { ApiResponse } from '../errors/apiResponse'
 import { mintInvoiceNumber } from '../helpers/invoiceNumber'
 import { reserveVariantStock, restoreVariantStock, type StockItem } from './stock.service'
+import { sendMail } from './nodemailer/mail.service'
 import { logger } from '../config/logger'
 import type {
   AdminListInvoicesQuery,
@@ -260,10 +261,60 @@ export const adminUpdateInvoiceService = async (
   return new ApiResponse(200, 'Invoice updated.', { invoice })
 }
 
-// ─── Admin: send / void ──────────────────────────────────────────
+// ─── Emails ──────────────────────────────────────────────────────
 
-/** Moves a draft to sent and holds catalogue stock. The email itself is
- *  dispatched by the caller so this stays usable for resend. */
+const formatNairaKobo = (kobo: number): string => `₦${(kobo / 100).toLocaleString('en-NG')}`
+
+const formatDueDate = (date: Date | null | undefined): string | null =>
+  date ? date.toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' }) : null
+
+export const publicInvoiceUrl = (invoice: Pick<IInvoice, 'accessToken'>): string =>
+  `${process.env.FRONTEND_PLATFORM_URL}/invoice/${invoice.accessToken}`
+
+function firstName(name: string): string {
+  return name.trim().split(' ')[0] || 'there'
+}
+
+/** Best effort, a broken SMTP never fails the send action itself. */
+async function dispatchInvoiceEmail(
+  invoice: InvoiceDocument,
+  template: 'invoiceSent' | 'invoiceReminder',
+): Promise<void> {
+  const subject =
+    template === 'invoiceSent'
+      ? `Your Mensa invoice ${invoice.invoiceNumber}`
+      : `Reminder: invoice ${invoice.invoiceNumber} is still open`
+  try {
+    await sendMail({
+      to: invoice.customer.email,
+      subject,
+      template,
+      data: {
+        invoiceNumber: invoice.invoiceNumber,
+        customerName: firstName(invoice.customer.name),
+        dueDate: formatDueDate(invoice.dueDate),
+        overdue: isInvoiceOverdue(invoice),
+        total: formatNairaKobo(invoice.totals.total),
+        lines: invoice.lines.map((l) => ({
+          description: l.description,
+          variantLabel: l.variantLabel ?? null,
+          qty: l.qty,
+          lineTotal: formatNairaKobo(l.lineTotal),
+        })),
+        invoiceUrl: publicInvoiceUrl(invoice),
+      },
+      replyTo: process.env.SUPPORT_EMAIL,
+    })
+    logger.info(`[invoice] ${template} dispatched for ${invoice.invoiceNumber}`)
+  } catch (err) {
+    logger.error(`[invoice] ${template} threw for ${invoice.invoiceNumber}`, err)
+  }
+}
+
+// ─── Admin: send / remind / void ─────────────────────────────────
+
+/** Moves a draft to sent, holds catalogue stock and emails the link. Works
+ *  for resend too: stock stays held, the email goes out again. */
 export const adminSendInvoiceService = async (
   id: string,
 ): Promise<ApiResponse<{ invoice: InvoiceDocument }>> => {
@@ -281,7 +332,40 @@ export const adminSendInvoiceService = async (
   invoice.sentAt = new Date()
   await invoice.save()
   logger.info(`[invoice] ${invoice.invoiceNumber} sent to ${invoice.customer.email}`)
+
+  await dispatchInvoiceEmail(invoice, 'invoiceSent')
   return new ApiResponse(200, 'Invoice sent.', { invoice })
+}
+
+export const adminRemindInvoiceService = async (
+  id: string,
+): Promise<ApiResponse<{ invoice: InvoiceDocument }>> => {
+  const invoice = (await Invoice.findById(id)) as InvoiceDocument | null
+  if (!invoice) throw new ApiError(404, 'Invoice not found.')
+  if (invoice.status !== 'sent' && invoice.status !== 'viewed') {
+    throw new ApiError(400, 'Reminders only go out for sent invoices that are still unpaid.')
+  }
+  await dispatchInvoiceEmail(invoice, 'invoiceReminder')
+  return new ApiResponse(200, 'Reminder sent.', { invoice })
+}
+
+// ─── Public: view by token ───────────────────────────────────────
+
+/** The customer's view. Drafts are invisible, a first open flips sent to
+ *  viewed. Settings ride along so the page can print the bank details. */
+export const getPublicInvoiceService = async (
+  token: string,
+): Promise<ApiResponse<{ invoice: InvoiceDocument; settings: IInvoiceSettings }>> => {
+  const invoice = (await Invoice.findOne({ accessToken: token })) as InvoiceDocument | null
+  if (!invoice || invoice.status === 'draft') throw new ApiError(404, 'Invoice not found.')
+
+  if (invoice.status === 'sent') {
+    invoice.status = 'viewed'
+    invoice.viewedAt = new Date()
+    await invoice.save()
+  }
+  const settings = (await getInvoiceSettingsService()).data as IInvoiceSettings
+  return new ApiResponse(200, 'OK.', { invoice, settings })
 }
 
 export const adminVoidInvoiceService = async (

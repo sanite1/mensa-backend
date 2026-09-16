@@ -92,6 +92,28 @@ export const adminSendInvoice: ExpressFunction<unknown, IdParams> = async (req, 
   }
 }
 
+/* ── POST /admin/invoices/:id/remind ── */
+export const adminRemindInvoice: ExpressFunction<unknown, IdParams> = async (req, res, next) => {
+  try {
+    sendResponse(res, await invoiceService.adminRemindInvoiceService(req.params.id))
+  } catch (error) {
+    next(error)
+  }
+}
+
+/* ── GET /invoices/:token ── (public) */
+export const getPublicInvoice: ExpressFunction<unknown, { token: string }> = async (
+  req,
+  res,
+  next,
+) => {
+  try {
+    sendResponse(res, await invoiceService.getPublicInvoiceService(req.params.token))
+  } catch (error) {
+    next(error)
+  }
+}
+
 /* ── POST /admin/invoices/:id/void ── */
 export const adminVoidInvoice: ExpressFunction<unknown, IdParams> = async (req, res, next) => {
   try {

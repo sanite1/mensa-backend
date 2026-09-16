@@ -92,6 +92,16 @@ export const validateInvoiceIdParam = validate({
   params: Joi.object({ id: objectId.required() }),
 })
 
+// ── GET /invoices/:token (public) ────────────────────────────────
+export const validateInvoiceTokenParam = validate({
+  params: Joi.object({
+    token: Joi.string()
+      .pattern(/^[0-9a-f]{48}$/)
+      .required()
+      .messages({ 'string.pattern.base': 'Invoice not found.' }),
+  }),
+})
+
 // ── PUT /admin/invoices/settings ─────────────────────────────────
 export const validateUpdateInvoiceSettings = validate({
   body: Joi.object({
