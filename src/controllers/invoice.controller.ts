@@ -114,6 +114,28 @@ export const getPublicInvoice: ExpressFunction<unknown, { token: string }> = asy
   }
 }
 
+/* ── POST /invoices/:token/pay ── (public) */
+export const payInvoice: ExpressFunction<unknown, { token: string }> = async (req, res, next) => {
+  try {
+    sendResponse(res, await invoiceService.initializeInvoicePaymentService(req.params.token))
+  } catch (error) {
+    next(error)
+  }
+}
+
+/* ── POST /invoices/:token/verify ── (public) */
+export const verifyInvoice: ExpressFunction<unknown, { token: string }> = async (
+  req,
+  res,
+  next,
+) => {
+  try {
+    sendResponse(res, await invoiceService.verifyAndReconcileInvoiceService(req.params.token))
+  } catch (error) {
+    next(error)
+  }
+}
+
 /* ── POST /admin/invoices/:id/void ── */
 export const adminVoidInvoice: ExpressFunction<unknown, IdParams> = async (req, res, next) => {
   try {

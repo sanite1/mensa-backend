@@ -43,8 +43,11 @@ export interface IInvoiceTotals {
 }
 
 export interface IInvoicePayment {
-  /** Paystack reference, always the invoice number. */
+  /** Paystack reference of the latest attempt. The first attempt is the
+   *  invoice number itself, later ones append -A2, -A3 and so on because
+   *  Paystack refuses a reused reference. */
   reference: string
+  attempts?: number
   accessCode?: string
   authorizationUrl?: string
   paidAt?: Date

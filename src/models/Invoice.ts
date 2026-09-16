@@ -55,7 +55,8 @@ const TotalsSchema = new Schema<IInvoiceTotals>(
 
 const PaymentSchema = new Schema<IInvoicePayment>(
   {
-    reference: { type: String, required: true, trim: true },
+    reference: { type: String, required: true, trim: true, index: true },
+    attempts: { type: Number, default: 0 },
     accessCode: { type: String },
     authorizationUrl: { type: String },
     paidAt: { type: Date },

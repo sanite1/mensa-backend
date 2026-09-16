@@ -7,6 +7,7 @@ import {
   markOrderFailedService,
   markOrderPaidService,
 } from '../services/order.service'
+import { isInvoiceReference, markInvoicePaidService } from '../services/invoice.service'
 import { sendResponse } from '../helpers/sendResponse'
 import { ApiError } from '../errors/apiError'
 import { ApiResponse } from '../errors/apiResponse'
@@ -49,12 +50,26 @@ export const paystackWebhook = async (
       return
     }
 
+    // Reference router: INV- references belong to invoices, everything else
+    // is an order. Orders keep the exact path they always had.
+    const forInvoice = isInvoiceReference(reference)
+
     if (event === 'charge.success') {
-      logger.info(`[Paystack webhook] charge.success → markOrderPaid(${reference})`)
-      await markOrderPaidService(reference, data)
+      if (forInvoice) {
+        logger.info(`[Paystack webhook] charge.success → markInvoicePaid(${reference})`)
+        await markInvoicePaidService(reference, data)
+      } else {
+        logger.info(`[Paystack webhook] charge.success → markOrderPaid(${reference})`)
+        await markOrderPaidService(reference, data)
+      }
     } else if (event === 'charge.failed') {
-      logger.info(`[Paystack webhook] charge.failed → markOrderFailed(${reference})`)
-      await markOrderFailedService(reference)
+      if (forInvoice) {
+        // Nothing to release, invoice stock stays held until it is paid or voided.
+        logger.info(`[Paystack webhook] charge.failed for invoice ${reference}, no action.`)
+      } else {
+        logger.info(`[Paystack webhook] charge.failed → markOrderFailed(${reference})`)
+        await markOrderFailedService(reference)
+      }
     } else {
       logger.info(`[Paystack webhook] Ignoring unhandled event: ${event}`)
     }
@@ -85,8 +100,12 @@ export const paystackDevFire: ExpressFunction<DevFireBody> = async (
     }
     const { reference, event = 'charge.success' } = req.body
     if (event === 'charge.success') {
-      await markOrderPaidService(reference, { simulated: true })
-    } else {
+      if (isInvoiceReference(reference)) {
+        await markInvoicePaidService(reference, { simulated: true })
+      } else {
+        await markOrderPaidService(reference, { simulated: true })
+      }
+    } else if (!isInvoiceReference(reference)) {
       await markOrderFailedService(reference)
     }
     sendResponse(

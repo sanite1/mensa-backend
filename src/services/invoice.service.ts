@@ -11,12 +11,17 @@ import type { FilterQuery } from 'mongoose'
 import { Invoice } from '../models/Invoice'
 import { InvoiceSettings } from '../models/InvoiceSettings'
 import { Product } from '../models/Product'
+import { Order } from '../models/Order'
 import { ApiError } from '../errors/apiError'
 import { ApiResponse } from '../errors/apiResponse'
-import { mintInvoiceNumber } from '../helpers/invoiceNumber'
+import { INVOICE_REFERENCE_PREFIX, mintInvoiceNumber } from '../helpers/invoiceNumber'
+import { mintOrderNumber } from '../helpers/orderNumber'
 import { reserveVariantStock, restoreVariantStock, type StockItem } from './stock.service'
 import { sendMail } from './nodemailer/mail.service'
+import { paystackService } from './external/paystack.service'
+import { markLeadOrderedService } from './lead.service'
 import { logger } from '../config/logger'
+import type { IOrderLine, OrderDocument } from '../interfaces/order.interface'
 import type {
   AdminListInvoicesQuery,
   AdminListInvoicesResult,
@@ -484,4 +489,300 @@ export const updateInvoiceSettingsService = async (
     { upsert: true, new: true },
   )
   return new ApiResponse(200, 'Invoice settings saved.', doc as IInvoiceSettings)
+}
+
+// ─── Payment ─────────────────────────────────────────────────────
+// Each Pay click gets its own Paystack reference (invoice number, then
+// -A2, -A3…) because Paystack refuses a reused reference. Every reference
+// resolves back to the invoice, so the webhook and verify on return both
+// land on the same idempotent markInvoicePaidService.
+
+const ATTEMPT_SUFFIX = /-A\d+$/
+
+export const isInvoiceReference = (reference: string): boolean =>
+  reference.startsWith(INVOICE_REFERENCE_PREFIX)
+
+/** Resolve a Paystack reference from any attempt back to its invoice. */
+export const findInvoiceByReference = async (
+  reference: string,
+): Promise<InvoiceDocument | null> => {
+  const latest = (await Invoice.findOne({
+    'payment.reference': reference,
+  })) as InvoiceDocument | null
+  if (latest) return latest
+  const invoiceNumber = reference.replace(ATTEMPT_SUFFIX, '')
+  return (await Invoice.findOne({ invoiceNumber })) as InvoiceDocument | null
+}
+
+export interface InvoicePaymentInit {
+  reference: string
+  accessCode: string
+  authorizationUrl: string
+  amount: number
+  publicKey: string
+  email: string
+}
+
+export const initializeInvoicePaymentService = async (
+  token: string,
+): Promise<ApiResponse<InvoicePaymentInit>> => {
+  const publicKey = process.env.PAYSTACK_PUBLIC_KEY
+  if (!publicKey) throw new ApiError(500, 'Payments are not configured. Please contact support.')
+
+  const invoice = (await Invoice.findOne({ accessToken: token })) as InvoiceDocument | null
+  if (!invoice || invoice.status === 'draft') throw new ApiError(404, 'Invoice not found.')
+  if (invoice.status === 'paid') throw new ApiError(409, 'This invoice has already been paid.')
+  if (invoice.status === 'void') {
+    throw new ApiError(400, 'This invoice was cancelled and cannot be paid.')
+  }
+  if (invoice.totals.total <= 0) throw new ApiError(422, 'There is nothing to pay on this invoice.')
+
+  const attempt = (invoice.payment.attempts ?? 0) + 1
+  const reference = attempt === 1 ? invoice.invoiceNumber : `${invoice.invoiceNumber}-A${attempt}`
+
+  const init = await paystackService.initializeTransaction({
+    email: invoice.customer.email,
+    amountKobo: invoice.totals.total,
+    reference,
+    callbackUrl: publicInvoiceUrl(invoice),
+    metadata: { kind: 'invoice', invoiceNumber: invoice.invoiceNumber },
+  })
+
+  invoice.payment.reference = reference
+  invoice.payment.attempts = attempt
+  invoice.payment.accessCode = init.accessCode
+  invoice.payment.authorizationUrl = init.authorizationUrl
+  await invoice.save()
+  logger.info(`[invoice] payment attempt ${attempt} initialized for ${invoice.invoiceNumber}`)
+
+  return new ApiResponse(200, 'Payment initialized.', {
+    reference,
+    accessCode: init.accessCode,
+    authorizationUrl: init.authorizationUrl,
+    amount: invoice.totals.total,
+    publicKey,
+    email: invoice.customer.email,
+  })
+}
+
+/** Turn the catalogue lines of a paid invoice into a processing order so
+ *  fulfilment and reports work as normal. Stock was already held at send,
+ *  so nothing is reserved again. Returns null when there are no products. */
+async function createOrderFromInvoice(invoice: InvoiceDocument): Promise<OrderDocument | null> {
+  const lines: Omit<IOrderLine, '_id'>[] = []
+  for (const line of invoice.lines) {
+    if (line.kind !== 'catalogue' || !line.productId || !line.variantId) continue
+    const product = (await Product.findById(line.productId)) as ProductDocument | null
+    if (!product) {
+      logger.warn(
+        `[invoice] product ${line.productId} missing while building order for ${invoice.invoiceNumber}`,
+      )
+      continue
+    }
+    const heroImage = (product.images ?? []).find((img) => img.order === 0) ?? product.images[0]
+    lines.push({
+      productId: line.productId,
+      variantId: line.variantId,
+      sku: line.sku ?? '',
+      productName: line.description,
+      variantLabel: line.variantLabel || line.description,
+      imageUrl: heroImage?.url,
+      slug: product.slug,
+      unitPrice: line.unitPrice,
+      qty: line.qty,
+      lineTotal: line.lineTotal,
+    })
+  }
+  if (lines.length === 0) return null
+
+  const subtotal = lines.reduce((sum, l) => sum + l.lineTotal, 0)
+  const shipping = invoice.shippingKobo
+  const phone = invoice.customer.phone?.trim() || 'Not provided'
+  const orderNumber = await mintOrderNumber()
+
+  return (await Order.create({
+    orderNumber,
+    source: 'manual',
+    userId: invoice.customer.userId ?? null,
+    customerEmail: invoice.customer.email,
+    customerPhone: phone,
+    lines,
+    address: {
+      fullName: invoice.customer.name,
+      phone,
+      line1: invoice.customer.address?.trim() || `As agreed on invoice ${invoice.invoiceNumber}`,
+      city: 'See invoice',
+      state: 'See invoice',
+      country: 'NG',
+    },
+    totals: { subtotal, shipping, discount: 0, total: subtotal + shipping },
+    payment: { status: 'paid', reference: invoice.payment.reference, paidAt: new Date() },
+    fulfilment: {
+      status: 'processing',
+      shippingMethod: 'invoice',
+      shippingLabel: invoice.shippingLabel,
+    },
+    internalNotes: `Created from invoice ${invoice.invoiceNumber}. Stock was held when the invoice was sent.`,
+  })) as OrderDocument
+}
+
+async function dispatchInvoicePaidEmails(
+  invoice: InvoiceDocument,
+  order: OrderDocument | null,
+): Promise<void> {
+  const paidAt = new Date().toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })
+  const lines = invoice.lines.map((l) => ({
+    description: l.description,
+    variantLabel: l.variantLabel ?? null,
+    qty: l.qty,
+    lineTotal: formatNairaKobo(l.lineTotal),
+  }))
+
+  try {
+    await sendMail({
+      to: invoice.customer.email,
+      subject: `Payment received for invoice ${invoice.invoiceNumber}`,
+      template: 'invoicePaid',
+      data: {
+        invoiceNumber: invoice.invoiceNumber,
+        customerName: firstName(invoice.customer.name),
+        paidAt,
+        total: formatNairaKobo(invoice.totals.total),
+        lines,
+        hasOrder: !!order,
+        orderNumber: order?.orderNumber ?? null,
+        invoiceUrl: publicInvoiceUrl(invoice),
+      },
+      replyTo: process.env.SUPPORT_EMAIL,
+    })
+  } catch (err) {
+    logger.error(`[invoice] receipt email threw for ${invoice.invoiceNumber}`, err)
+  }
+
+  try {
+    const adminTo =
+      process.env.ADMIN_NOTIFICATION_EMAIL ?? process.env.SUPPORT_EMAIL ?? process.env.SMTP_FROM
+    if (!adminTo) {
+      logger.warn('[invoice] no admin notification address configured; skipping paid alert.')
+      return
+    }
+    await sendMail({
+      to: adminTo,
+      subject: `[Invoice paid] ${invoice.invoiceNumber} · ${formatNairaKobo(invoice.totals.total)} · ${invoice.customer.name}`,
+      template: 'invoiceAdminPaid',
+      data: {
+        invoiceNumber: invoice.invoiceNumber,
+        paidAt,
+        customerName: invoice.customer.name,
+        customerEmail: invoice.customer.email,
+        total: formatNairaKobo(invoice.totals.total),
+        hasOrder: !!order,
+        orderNumber: order?.orderNumber ?? null,
+        adminInvoiceUrl: `${process.env.FRONTEND_ADMIN_URL}/invoices/${invoice._id}`,
+      },
+    })
+  } catch (err) {
+    logger.error(`[invoice] admin paid alert threw for ${invoice.invoiceNumber}`, err)
+  }
+}
+
+/** Mark an invoice paid and fire the downstream effects. Idempotent, shared
+ *  by the webhook and verify on return exactly like orders. Refuses when
+ *  Paystack reports less than the invoice total. */
+export const markInvoicePaidService = async (
+  reference: string,
+  paystackPayload?: Record<string, unknown>,
+): Promise<void> => {
+  const invoice = await findInvoiceByReference(reference)
+  if (!invoice) {
+    logger.warn(`[markInvoicePaid] no invoice for reference=${reference}`)
+    return
+  }
+  if (invoice.status === 'paid') {
+    logger.info(`[markInvoicePaid] ${invoice.invoiceNumber} already paid; idempotent skip.`)
+    return
+  }
+  if (invoice.status === 'void') {
+    // Money arrived for a cancelled invoice. Record it loudly, never lose it.
+    logger.error(
+      `[markInvoicePaid] payment ${reference} arrived for VOID invoice ${invoice.invoiceNumber}. Marking paid without an order, review manually.`,
+    )
+  }
+
+  try {
+    const verify = await paystackService.verifyTransaction(reference)
+    if (verify.status !== 'success') {
+      logger.warn(
+        `[markInvoicePaid] verify status '${verify.status}' for ${reference}. Trusting the signed webhook.`,
+      )
+    }
+    if (verify.amount < invoice.totals.total) {
+      logger.error(
+        `[markInvoicePaid] UNDERPAID ${reference}: expected ${invoice.totals.total}, got ${verify.amount}. Refusing.`,
+      )
+      return
+    }
+  } catch (err) {
+    logger.error(`[markInvoicePaid] verifyTransaction failed for ${reference}`, err)
+  }
+
+  const wasVoid = invoice.status === 'void'
+  invoice.status = 'paid'
+  invoice.paidAt = new Date()
+  invoice.payment.paidAt = invoice.paidAt
+  if (paystackPayload) invoice.payment.lastWebhookPayload = paystackPayload
+
+  let order: OrderDocument | null = null
+  if (!wasVoid) {
+    try {
+      order = await createOrderFromInvoice(invoice)
+      if (order) invoice.orderId = order._id
+    } catch (err) {
+      logger.error(`[markInvoicePaid] order creation failed for ${invoice.invoiceNumber}`, err)
+    }
+  }
+  await invoice.save()
+  logger.info(
+    `[markInvoicePaid] ${invoice.invoiceNumber} paid${order ? `, order ${order.orderNumber} created` : ''}`,
+  )
+
+  await dispatchInvoicePaidEmails(invoice, order)
+
+  if (order) {
+    try {
+      await markLeadOrderedService(invoice.customer.email, order.orderNumber)
+    } catch (err) {
+      logger.error(`[markInvoicePaid] lead conversion failed for ${invoice.invoiceNumber}`, err)
+    }
+  }
+}
+
+/** Verify on return: ask Paystack about the latest attempt directly, the
+ *  redirect can beat the webhook. Idempotent and safe to call on every
+ *  page load. */
+export const verifyAndReconcileInvoiceService = async (
+  token: string,
+): Promise<ApiResponse<{ invoice: InvoiceDocument }>> => {
+  const invoice = (await Invoice.findOne({ accessToken: token })) as InvoiceDocument | null
+  if (!invoice || invoice.status === 'draft') throw new ApiError(404, 'Invoice not found.')
+  if (invoice.status === 'paid' || !invoice.payment.accessCode) {
+    return new ApiResponse(200, 'OK.', { invoice })
+  }
+
+  try {
+    const verify = await paystackService.verifyTransaction(invoice.payment.reference)
+    if (verify.status === 'success') {
+      if (verify.amount < invoice.totals.total) {
+        throw new ApiError(400, 'Payment amount does not match the invoice total.')
+      }
+      await markInvoicePaidService(invoice.payment.reference, { source: 'verify-on-return' })
+    }
+  } catch (err) {
+    if (err instanceof ApiError) throw err
+    logger.error(`[invoice] verify failed for ${invoice.payment.reference}`, err)
+  }
+
+  const refreshed = (await Invoice.findOne({ accessToken: token })) as InvoiceDocument | null
+  if (!refreshed) throw new ApiError(404, 'Invoice not found.')
+  return new ApiResponse(200, 'OK.', { invoice: refreshed })
 }

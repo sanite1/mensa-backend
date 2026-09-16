@@ -1,0 +1,37 @@
+{{#> layout title="Invoice paid"}}
+  <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#8A7C70;">
+    Invoice {{invoiceNumber}} · {{paidAt}}
+  </p>
+  <h1 style="margin:0 0 16px 0;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:400;font-size:28px;line-height:1.2;color:#1A1410;">
+    {{customerName}} paid {{total}}.
+  </h1>
+  <p style="margin:0 0 24px 0;font-size:14px;line-height:1.6;color:#4F433B;">
+    {{#if hasOrder}}Order {{orderNumber}} was created from the products on the invoice and is ready to be packed.{{else}}This invoice had no catalogue products, so no order was created.{{/if}}
+  </p>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 24px 0;border-collapse:collapse;">
+    <tr>
+      <td style="padding:6px 0;color:#8A7C70;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;width:120px;vertical-align:top;">Customer</td>
+      <td style="padding:6px 0;color:#1A1410;font-size:14px;">{{customerName}}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 0;color:#8A7C70;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;vertical-align:top;">Email</td>
+      <td style="padding:6px 0;color:#1A1410;font-size:14px;"><a href="mailto:{{customerEmail}}" style="color:#1A1410;">{{customerEmail}}</a></td>
+    </tr>
+    <tr>
+      <td style="padding:6px 0;color:#8A7C70;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;vertical-align:top;">Amount</td>
+      <td style="padding:6px 0;color:#1A1410;font-size:14px;font-weight:600;">{{total}}</td>
+    </tr>
+  </table>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0;">
+    <tr>
+      <td style="background:#FE718E;border-radius:4px;">
+        <a href="{{adminInvoiceUrl}}"
+           style="display:inline-block;padding:12px 24px;font-family:Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:#FFFCF6;text-decoration:none;">
+          Open in the dashboard
+        </a>
+      </td>
+    </tr>
+  </table>
+{{/layout}}
