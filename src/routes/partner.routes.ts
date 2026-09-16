@@ -27,12 +27,7 @@ router.post(
 )
 
 // ── Authed (partner self) ────────────────────────────────────────
-router.get(
-  '/me',
-  authenticatedMiddleWare,
-  authedLimiter,
-  partnerController.getPartnerSelfDashboard,
-)
+router.get('/me', authenticatedMiddleWare, authedLimiter, partnerController.getPartnerSelfDashboard)
 router.patch(
   '/me/bank-account',
   authenticatedMiddleWare,

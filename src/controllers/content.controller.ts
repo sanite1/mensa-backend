@@ -46,11 +46,7 @@ export const adminListContent: ExpressFunction = async (req, res, next) => {
 }
 
 /* ── GET /admin/content/:id ── (admin) */
-export const adminGetContent: ExpressFunction<unknown, { id: string }> = async (
-  req,
-  res,
-  next,
-) => {
+export const adminGetContent: ExpressFunction<unknown, { id: string }> = async (req, res, next) => {
   try {
     const response = await contentService.adminGetContentService(req.params.id)
     sendResponse(res, response)
@@ -74,10 +70,11 @@ export const adminCreateContent: ExpressFunction<CreateContentPostInput> = async
 }
 
 /* ── PUT /admin/content/:id ── (admin) */
-export const adminUpdateContent: ExpressFunction<
-  UpdateContentPostInput,
-  { id: string }
-> = async (req, res, next) => {
+export const adminUpdateContent: ExpressFunction<UpdateContentPostInput, { id: string }> = async (
+  req,
+  res,
+  next,
+) => {
   try {
     const response = await contentService.adminUpdateContentService(req.params.id, req.body)
     sendResponse(res, response)

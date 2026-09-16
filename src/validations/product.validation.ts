@@ -15,13 +15,11 @@ const slug = Joi.string()
     'string.max': 'Slug must be 120 characters or fewer.',
   })
 
-const category = Joi.string()
-  .valid('pants', 'pads', 'bundles', 'education', 'advocacy')
-  .messages({
-    'any.only': 'Category must be pants, pads, bundles, education, or advocacy.',
-    'string.empty': 'Category is required.',
-    'any.required': 'Category is required.',
-  })
+const category = Joi.string().valid('pants', 'pads', 'bundles', 'education', 'advocacy').messages({
+  'any.only': 'Category must be pants, pads, bundles, education, or advocacy.',
+  'string.empty': 'Category is required.',
+  'any.required': 'Category is required.',
+})
 
 const priceKobo = Joi.number().integer().min(0).messages({
   'number.base': 'Price must be a whole number of kobo.',
@@ -44,21 +42,15 @@ const variant = Joi.object({
   isActive: Joi.boolean().default(true),
 })
 
-const optionTypes = Joi.array()
-  .items(Joi.string().trim().min(1).max(40))
-  .default([])
-  .messages({
-    'array.includesRequiredUnknowns': 'Each option type must be a short label.',
-  })
+const optionTypes = Joi.array().items(Joi.string().trim().min(1).max(40)).default([]).messages({
+  'array.includesRequiredUnknowns': 'Each option type must be a short label.',
+})
 
 const trustLine = Joi.object({
-  icon: Joi.string()
-    .valid('truck', 'shield', 'leaf', 'star', 'check', 'mail')
-    .required()
-    .messages({
-      'any.only': 'Trust line icon must be one of truck, shield, leaf, star, check, mail.',
-      'any.required': 'Trust line icon is required.',
-    }),
+  icon: Joi.string().valid('truck', 'shield', 'leaf', 'star', 'check', 'mail').required().messages({
+    'any.only': 'Trust line icon must be one of truck, shield, leaf, star, check, mail.',
+    'any.required': 'Trust line icon is required.',
+  }),
   text: Joi.string().trim().min(1).max(200).required().messages({
     'string.empty': 'Trust line text is required.',
     'any.required': 'Trust line text is required.',
@@ -160,9 +152,11 @@ export const validateUpdateProduct = validate({
     isActive: Joi.boolean(),
     isSoldOut: Joi.boolean(),
     showSizeGuide: Joi.boolean(),
-  }).min(1).messages({
-    'object.min': 'Send at least one field to update.',
-  }),
+  })
+    .min(1)
+    .messages({
+      'object.min': 'Send at least one field to update.',
+    }),
 })
 
 // ── Image upload metadata (multipart body fields) ─────────────────────

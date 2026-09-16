@@ -59,9 +59,7 @@ interface SnapshottedLine {
 /** Look up each cart line against the catalogue and build the snapshot we
  *  freeze on the order. Validates product/variant existence + active state
  *  + stock availability. */
-async function snapshotLines(
-  inputs: CheckoutLineInput[],
-): Promise<SnapshottedLine[]> {
+async function snapshotLines(inputs: CheckoutLineInput[]): Promise<SnapshottedLine[]> {
   const snapshots: SnapshottedLine[] = []
 
   for (const input of inputs) {
@@ -93,8 +91,7 @@ async function snapshotLines(
       )
     }
 
-    const unitPrice =
-      variant.b2cPriceOverride ?? product.salePrice ?? product.basePriceB2C
+    const unitPrice = variant.b2cPriceOverride ?? product.salePrice ?? product.basePriceB2C
     const heroImage = (product.images ?? []).find((img) => img.order === 0) ?? product.images[0]
     const optionTypes = product.optionTypes ?? []
     const variantLabel =
@@ -148,10 +145,7 @@ async function reserveStock(snapshots: SnapshottedLine[]): Promise<void> {
           { $inc: { 'variants.$.stockCount': r.qty } },
         )
       }
-      throw new ApiError(
-        409,
-        `Stock changed while we were preparing your order. Please try again.`,
-      )
+      throw new ApiError(409, `Stock changed while we were preparing your order. Please try again.`)
     }
     reserved.push({
       productId: product._id,
@@ -225,10 +219,7 @@ export const initializeCheckoutService = async (
 ): Promise<ApiResponse<InitializeCheckoutResult>> => {
   const publicKey = process.env.PAYSTACK_PUBLIC_KEY
   if (!publicKey) {
-    throw new ApiError(
-      500,
-      'Payments are not configured. Please contact support.',
-    )
+    throw new ApiError(500, 'Payments are not configured. Please contact support.')
   }
 
   // 1. Snapshot lines + validate availability.
@@ -406,9 +397,7 @@ export const markOrderPaidService = async (
   // are logged but do not block the email — the signed webhook is enough.
   try {
     const verify = await paystackService.verifyTransaction(reference)
-    logger.info(
-      `[markOrderPaid] verify result status=${verify.status} amount=${verify.amount}`,
-    )
+    logger.info(`[markOrderPaid] verify result status=${verify.status} amount=${verify.amount}`)
     if (verify.status !== 'success') {
       logger.warn(
         `[markOrderPaid] Verify status is '${verify.status}' for ${reference}. ` +
@@ -448,9 +437,7 @@ export const markOrderPaidService = async (
       })
       order.fulfilment.trackingCode = shipment.trackingNumber
       order.fulfilment.trackingUrl = sendboxService.trackingUrl(shipment.trackingNumber)
-      logger.info(
-        `[markOrderPaid] sendbox shipment created tracking=${shipment.trackingNumber}`,
-      )
+      logger.info(`[markOrderPaid] sendbox shipment created tracking=${shipment.trackingNumber}`)
     } catch (err) {
       logger.error(`[Sendbox] Shipment failed for ${order.orderNumber}`, err)
       // Order stays in 'processing' so admin can recreate the shipment.
@@ -502,9 +489,7 @@ export const markOrderPaidService = async (
         trackingUrl: `${process.env.FRONTEND_PLATFORM_URL}/checkout/confirmation/${order.orderNumber}`,
       },
     })
-    logger.info(
-      `[markOrderPaid] confirmation email dispatched to=${order.customerEmail}`,
-    )
+    logger.info(`[markOrderPaid] confirmation email dispatched to=${order.customerEmail}`)
   } catch (err) {
     // Should not happen — sendMail swallows internally — but belt and braces.
     logger.error(`[markOrderPaid] sendMail threw unexpectedly`, err)
@@ -513,9 +498,7 @@ export const markOrderPaidService = async (
   // Notify the admin inbox so new orders surface without polling. Best effort like the customer email, a broken alert must never block the webhook.
   try {
     const adminTo =
-      process.env.ADMIN_NOTIFICATION_EMAIL ??
-      process.env.SUPPORT_EMAIL ??
-      process.env.SMTP_FROM
+      process.env.ADMIN_NOTIFICATION_EMAIL ?? process.env.SUPPORT_EMAIL ?? process.env.SMTP_FROM
     if (!adminTo) {
       logger.warn('[markOrderPaid] no admin notification address configured; skipping alert.')
     } else {
@@ -610,9 +593,7 @@ export const verifyAndReconcileOrderService = async (
 
   try {
     const verify = await paystackService.verifyTransaction(reference)
-    logger.info(
-      `[verifyAndReconcile] paystack status=${verify.status} amount=${verify.amount}`,
-    )
+    logger.info(`[verifyAndReconcile] paystack status=${verify.status} amount=${verify.amount}`)
     if (verify.status === 'success') {
       if (verify.amount < order.totals.total) {
         logger.error(
@@ -692,10 +673,7 @@ export const trackOrderService = async (
     customerEmail: email.toLowerCase().trim(),
   })) as OrderDocument | null
   if (!order) {
-    throw new ApiError(
-      404,
-      'No order matches that number and email combination.',
-    )
+    throw new ApiError(404, 'No order matches that number and email combination.')
   }
   return new ApiResponse(200, 'OK.', { order })
 }
@@ -745,17 +723,9 @@ export const adminGetOrderService = async (
 /* ─── Admin: update fulfilment ────────────────────────────────────── */
 
 /** Forward only fulfilment state machine, cancelled is a sink from any pre shipped state. Array order defines allowed transitions, cancelled and delivered are terminal. */
-const FULFILMENT_ORDER: FulfilmentStatus[] = [
-  'pending',
-  'processing',
-  'shipped',
-  'delivered',
-]
+const FULFILMENT_ORDER: FulfilmentStatus[] = ['pending', 'processing', 'shipped', 'delivered']
 
-function canTransitionFulfilment(
-  from: FulfilmentStatus,
-  to: FulfilmentStatus,
-): boolean {
+function canTransitionFulfilment(from: FulfilmentStatus, to: FulfilmentStatus): boolean {
   if (from === to) return false // no-op transitions are an admin mistake
   if (from === 'delivered' || from === 'cancelled') return false
   if (to === 'cancelled') return from !== 'shipped' // can't cancel after it left the studio
@@ -777,10 +747,7 @@ export const adminUpdateOrderFulfilmentService = async (
   if (!order) throw new ApiError(404, 'Order not found.')
 
   // Cannot fulfil what wasn't paid for. Refunds are a separate flow.
-  if (
-    input.status !== 'cancelled' &&
-    order.payment.status !== 'paid'
-  ) {
+  if (input.status !== 'cancelled' && order.payment.status !== 'paid') {
     throw new ApiError(
       409,
       'This order has not been paid. Wait for payment before updating fulfilment.',
@@ -788,10 +755,7 @@ export const adminUpdateOrderFulfilmentService = async (
   }
 
   if (!canTransitionFulfilment(order.fulfilment.status, input.status)) {
-    throw new ApiError(
-      409,
-      `Cannot move from "${order.fulfilment.status}" to "${input.status}".`,
-    )
+    throw new ApiError(409, `Cannot move from "${order.fulfilment.status}" to "${input.status}".`)
   }
 
   const now = new Date()
@@ -816,10 +780,7 @@ export const adminUpdateOrderFulfilmentService = async (
     try {
       await markCommissionAvailableForOrder(order)
     } catch (err) {
-      logger.error(
-        `[adminUpdateFulfilment] commission flip failed for ${order.orderNumber}`,
-        err,
-      )
+      logger.error(`[adminUpdateFulfilment] commission flip failed for ${order.orderNumber}`, err)
     }
   }
 
@@ -838,24 +799,18 @@ export const adminUpdateOrderFulfilmentService = async (
         err,
       )
     }
-    logger.info(
-      `[adminUpdateFulfilment] cancelled ${order.orderNumber}; stock restored.`,
-    )
+    logger.info(`[adminUpdateFulfilment] cancelled ${order.orderNumber}; stock restored.`)
   }
 
   if (input.note?.trim()) {
     const stamp = now.toISOString()
     const author = actorUserId ?? 'admin'
     const line = `[${stamp}] ${author}: ${input.note.trim()}`
-    order.internalNotes = order.internalNotes
-      ? `${order.internalNotes}\n${line}`
-      : line
+    order.internalNotes = order.internalNotes ? `${order.internalNotes}\n${line}` : line
   }
 
   await order.save()
-  logger.info(
-    `[adminUpdateFulfilment] order=${order.orderNumber} → ${input.status}`,
-  )
+  logger.info(`[adminUpdateFulfilment] order=${order.orderNumber} → ${input.status}`)
 
   // Side effects after persist so a failed email never rolls back the
   // status change.
@@ -867,8 +822,7 @@ export const adminUpdateOrderFulfilmentService = async (
         template: 'orderShipped',
         data: {
           orderNumber: order.orderNumber,
-          customerName:
-            (order.address.fullName ?? '').split(' ')[0] || 'there',
+          customerName: (order.address.fullName ?? '').split(' ')[0] || 'there',
           trackingCode: order.fulfilment.trackingCode ?? '',
           // Prefer the courier tracking URL, else deep link our own tracker prefilled with the order number and email.
           trackingUrl:
@@ -877,10 +831,7 @@ export const adminUpdateOrderFulfilmentService = async (
         },
       })
     } catch (err) {
-      logger.error(
-        `[adminUpdateFulfilment] orderShipped email threw for ${order.orderNumber}`,
-        err,
-      )
+      logger.error(`[adminUpdateFulfilment] orderShipped email threw for ${order.orderNumber}`, err)
     }
   }
 

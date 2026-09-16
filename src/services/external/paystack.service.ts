@@ -80,10 +80,7 @@ export const paystackService = {
   verifyWebhookSignature(rawBody: string, signature: string | undefined): boolean {
     const secret = process.env.PAYSTACK_SECRET_KEY
     if (!secret || !signature) return false
-    const expected = crypto
-      .createHmac('sha512', secret)
-      .update(rawBody)
-      .digest('hex')
+    const expected = crypto.createHmac('sha512', secret).update(rawBody).digest('hex')
     // Equal-length buffers required by timingSafeEqual.
     if (expected.length !== signature.length) return false
     return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))

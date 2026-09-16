@@ -2,12 +2,7 @@ import type { Document, Types } from 'mongoose'
 
 /** Where the visitor signed up. Lets us measure which surfaces drive the
  *  most subscribers. Extend as we add new entry points. */
-export type NewsletterSource =
-  | 'footer'
-  | 'mobile_drawer'
-  | 'partner_apply'
-  | 'checkout'
-  | 'other'
+export type NewsletterSource = 'footer' | 'mobile_drawer' | 'partner_apply' | 'checkout' | 'other'
 
 export type NewsletterStatus = 'subscribed' | 'unsubscribed'
 

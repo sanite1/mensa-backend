@@ -11,12 +11,7 @@ import {
 const router = Router()
 
 // Public tracking by order number + email (no auth, but rate-limited).
-router.get(
-  '/track/:orderNumber',
-  publicReadLimiter,
-  validateTrackOrder,
-  controller.trackOrder,
-)
+router.get('/track/:orderNumber', publicReadLimiter, validateTrackOrder, controller.trackOrder)
 
 // Authenticated customer reads.
 router.use(authenticatedMiddleWare, authedLimiter)

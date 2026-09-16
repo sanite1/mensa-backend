@@ -3,10 +3,7 @@ import { sendResponse } from '../helpers/sendResponse'
 import { ApiError } from '../errors/apiError'
 import * as newsletterService from '../services/newsletter.service'
 import type { ExpressFunction } from '../interfaces/express.interface'
-import type {
-  AdminListSubscribersQuery,
-  SubscribeInput,
-} from '../interfaces/newsletter.interface'
+import type { AdminListSubscribersQuery, SubscribeInput } from '../interfaces/newsletter.interface'
 
 /* ── POST /newsletter/subscribe ── (public) */
 export const subscribe: ExpressFunction<SubscribeInput> = async (req, res, next) => {

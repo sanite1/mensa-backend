@@ -1,12 +1,7 @@
 import type { Document, Types } from 'mongoose'
 
 export type ContentKind = 'journal' | 'education'
-export type ContentCategory =
-  | 'classroom'
-  | 'product'
-  | 'community'
-  | 'policy'
-  | 'care'
+export type ContentCategory = 'classroom' | 'product' | 'community' | 'policy' | 'care'
 export type ContentStatus = 'draft' | 'published'
 
 export interface IContentCoverImage {
@@ -35,8 +30,7 @@ export interface IContentPost {
   updatedAt: Date
 }
 
-export type ContentPostDocument = Document<Types.ObjectId, unknown, IContentPost> &
-  IContentPost
+export type ContentPostDocument = Document<Types.ObjectId, unknown, IContentPost> & IContentPost
 
 // ── DTOs ─────────────────────────────────────────────────────────
 

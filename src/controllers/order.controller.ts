@@ -2,10 +2,7 @@ import { sendResponse } from '../helpers/sendResponse'
 import { ApiError } from '../errors/apiError'
 import * as service from '../services/order.service'
 import type { ExpressFunction } from '../interfaces/express.interface'
-import type {
-  ListOrdersQuery,
-  UpdateOrderFulfilmentInput,
-} from '../interfaces/order.interface'
+import type { ListOrdersQuery, UpdateOrderFulfilmentInput } from '../interfaces/order.interface'
 
 /* ── GET /orders ── (authenticated, current user) */
 export const listMyOrders: ExpressFunction = async (req, res, next) => {
@@ -21,11 +18,7 @@ export const listMyOrders: ExpressFunction = async (req, res, next) => {
 }
 
 /* ── GET /orders/:id ── (authenticated, current user) */
-export const getMyOrder: ExpressFunction<unknown, { id: string }> = async (
-  req,
-  res,
-  next,
-) => {
+export const getMyOrder: ExpressFunction<unknown, { id: string }> = async (req, res, next) => {
   try {
     const userId = req.user?.userId
     if (!userId) throw new ApiError(401, 'You are not signed in.')
@@ -44,10 +37,7 @@ export const trackOrder: ExpressFunction<unknown, { orderNumber: string }> = asy
 ) => {
   try {
     const email = String(req.query.email ?? '')
-    const response = await service.trackOrderService(
-      req.params.orderNumber,
-      email,
-    )
+    const response = await service.trackOrderService(req.params.orderNumber, email)
     sendResponse(res, response)
   } catch (error) {
     next(error)
@@ -66,11 +56,7 @@ export const adminListOrders: ExpressFunction = async (req, res, next) => {
 }
 
 /* ── GET /admin/orders/:id ── (admin) */
-export const adminGetOrder: ExpressFunction<unknown, { id: string }> = async (
-  req,
-  res,
-  next,
-) => {
+export const adminGetOrder: ExpressFunction<unknown, { id: string }> = async (req, res, next) => {
   try {
     const response = await service.adminGetOrderService(req.params.id)
     sendResponse(res, response)

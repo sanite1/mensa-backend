@@ -5,13 +5,7 @@ const objectId = Joi.string()
   .pattern(/^[0-9a-fA-F]{24}$/)
   .messages({ 'string.pattern.base': 'Malformed id.' })
 
-const partnerStatus = Joi.string().valid(
-  'pending',
-  'approved',
-  'active',
-  'rejected',
-  'suspended',
-)
+const partnerStatus = Joi.string().valid('pending', 'approved', 'active', 'rejected', 'suspended')
 
 const payoutStatus = Joi.string().valid('pending', 'paid', 'rejected')
 

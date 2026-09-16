@@ -6,12 +6,7 @@ import { ApiResponse } from '../errors/apiResponse'
 import { sendMail } from './nodemailer/mail.service'
 import { logger } from '../config/logger'
 
-export type ContactTopic =
-  | 'order'
-  | 'product'
-  | 'partnership'
-  | 'press'
-  | 'other'
+export type ContactTopic = 'order' | 'product' | 'partnership' | 'press' | 'other'
 
 export interface ContactMessageInput {
   name: string

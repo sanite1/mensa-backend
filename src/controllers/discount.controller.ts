@@ -47,11 +47,7 @@ export const adminGetDiscount: ExpressFunction<unknown, { id: string }> = async 
 }
 
 /* ── POST /admin/discounts ── */
-export const adminCreateDiscount: ExpressFunction<CreateDiscountInput> = async (
-  req,
-  res,
-  next,
-) => {
+export const adminCreateDiscount: ExpressFunction<CreateDiscountInput> = async (req, res, next) => {
   try {
     const response = await service.adminCreateDiscountService(req.body)
     sendResponse(res, response)
@@ -61,10 +57,11 @@ export const adminCreateDiscount: ExpressFunction<CreateDiscountInput> = async (
 }
 
 /* ── PUT /admin/discounts/:id ── */
-export const adminUpdateDiscount: ExpressFunction<
-  UpdateDiscountInput,
-  { id: string }
-> = async (req, res, next) => {
+export const adminUpdateDiscount: ExpressFunction<UpdateDiscountInput, { id: string }> = async (
+  req,
+  res,
+  next,
+) => {
   try {
     const response = await service.adminUpdateDiscountService(req.params.id, req.body)
     sendResponse(res, response)

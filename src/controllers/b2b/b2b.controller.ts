@@ -44,10 +44,11 @@ export const adminGetPartnership: ExpressFunction<unknown, { id: string }> = asy
 }
 
 /* ── PATCH /admin/partnerships/:id/verify ── (admin) */
-export const adminVerifyPartnership: ExpressFunction<
-  VerifyB2BOrgInput,
-  { id: string }
-> = async (req, res, next) => {
+export const adminVerifyPartnership: ExpressFunction<VerifyB2BOrgInput, { id: string }> = async (
+  req,
+  res,
+  next,
+) => {
   try {
     const actorUserId = req.user?.userId ?? null
     const response = await b2bOrgService.adminVerifyB2BOrgService(

@@ -223,7 +223,7 @@ const catalogue: SeedSpec[] = [
     subheading: 'A guide to your cycle.',
     shortDescription: 'Educational guide. Print and digital.',
     description:
-      'Mensa\'s illustrated cycle education guide. Written for Nigerian girls and young women. Covers periods, hormones, hygiene, and common questions answered with care.',
+      "Mensa's illustrated cycle education guide. Written for Nigerian girls and young women. Covers periods, hormones, hygiene, and common questions answered with care.",
     category: 'education',
     basePriceNaira: 2500,
     sized: false,
@@ -284,9 +284,7 @@ function toCreateInput(spec: SeedSpec): CreateProductInput {
     variants: buildVariants(spec),
     accordions: spec.accordions,
     trustLines: spec.trustLines,
-    metadata: spec.badge
-      ? { badge: spec.badge.label, badgeTone: spec.badge.tone }
-      : {},
+    metadata: spec.badge ? { badge: spec.badge.label, badgeTone: spec.badge.tone } : {},
     isActive: true,
     // Pants + bundles share the same waist-based sizing; turn on the
     // size-guide link automatically. Pads / education don't need it.

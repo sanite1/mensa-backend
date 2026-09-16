@@ -1,10 +1,7 @@
 import { Router } from 'express'
 import * as controller from '../controllers/product.controller'
 import { publicReadLimiter } from '../middlewares/rateLimiter'
-import {
-  validateListProducts,
-  validateProductSlugParam,
-} from '../validations/product.validation'
+import { validateListProducts, validateProductSlugParam } from '../validations/product.validation'
 
 const router = Router()
 

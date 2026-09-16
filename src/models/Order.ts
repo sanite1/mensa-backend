@@ -57,13 +57,7 @@ const PaymentSchema = new Schema<IOrderPayment>(
   {
     status: {
       type: String,
-      enum: [
-        'pending',
-        'paid',
-        'failed',
-        'refunded',
-        'partial_refund',
-      ] satisfies PaymentStatus[],
+      enum: ['pending', 'paid', 'failed', 'refunded', 'partial_refund'] satisfies PaymentStatus[],
       default: 'pending',
       index: true,
     },

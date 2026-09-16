@@ -52,9 +52,7 @@ interface RateLookup {
 export const sendboxService = {
   /** Fetch shipping options for a destination and weight, the in house FCT / Lagos rider option always precedes the Sendbox nationwide ones. */
   async getRates(input: RateLookup): Promise<SendboxRate[]> {
-    const inHouseOption: SendboxRate | null = IN_HOUSE_STATES.has(
-      input.destinationState,
-    )
+    const inHouseOption: SendboxRate | null = IN_HOUSE_STATES.has(input.destinationState)
       ? {
           serviceId: 'inhouse-rider',
           provider: 'Mensa rider',

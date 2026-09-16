@@ -6,11 +6,7 @@ import crypto from 'crypto'
 import { Types } from 'mongoose'
 import type { FilterQuery } from 'mongoose'
 
-import {
-  Partner,
-  PartnerCommission,
-  PartnerPayoutRequest,
-} from '../models/Partner'
+import { Partner, PartnerCommission, PartnerPayoutRequest } from '../models/Partner'
 import { User } from '../models/User'
 import { ApiError } from '../errors/apiError'
 import { ApiResponse } from '../errors/apiResponse'
@@ -42,14 +38,11 @@ const MIN_PAYOUT_KOBO = 500_000 // ₦5,000
 const DEFAULT_PAGE_SIZE = 24
 const MAX_PAGE_SIZE = 100
 
-const escapeRegex = (input: string): string =>
-  input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const escapeRegex = (input: string): string => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-const hashToken = (token: string): string =>
-  crypto.createHash('sha256').update(token).digest('hex')
+const hashToken = (token: string): string => crypto.createHash('sha256').update(token).digest('hex')
 
-const generateReferralCode = (): string =>
-  crypto.randomBytes(4).toString('hex').toUpperCase()
+const generateReferralCode = (): string => crypto.randomBytes(4).toString('hex').toUpperCase()
 
 const isReservedSlug = (code: string): boolean => {
   // Avoid codes clashing with sensitive paths or exploitable words, admins can override via the admin tool.
@@ -99,9 +92,7 @@ export const applyAsPartnerService = async (
 /** Verify an onboarding token and return the partner shell for the welcome page. Throws if the token is invalid, expired, or already consumed. */
 export const verifyOnboardingTokenService = async (
   token: string,
-): Promise<
-  ApiResponse<{ partner: { name: string; email: string; commissionRate: number } }>
-> => {
+): Promise<ApiResponse<{ partner: { name: string; email: string; commissionRate: number } }>> => {
   const tokenHash = hashToken(token)
   const partner = await Partner.findOne({
     onboardingTokenHash: tokenHash,
@@ -124,9 +115,7 @@ export const verifyOnboardingTokenService = async (
 export const completePartnerOnboardingService = async (
   token: string,
   input: CompletePartnerOnboardingInput,
-): Promise<
-  ApiResponse<{ email: string; referralCode: string }>
-> => {
+): Promise<ApiResponse<{ email: string; referralCode: string }>> => {
   const tokenHash = hashToken(token)
   const partner = (await Partner.findOne({
     onboardingTokenHash: tokenHash,
@@ -145,10 +134,7 @@ export const completePartnerOnboardingService = async (
   let referralCode = input.referralCode?.trim().toUpperCase()
   if (referralCode) {
     if (!/^[A-Z0-9]{3,16}$/.test(referralCode)) {
-      throw new ApiError(
-        400,
-        'Referral code must be 3 to 16 letters or numbers, no spaces.',
-      )
+      throw new ApiError(400, 'Referral code must be 3 to 16 letters or numbers, no spaces.')
     }
     if (isReservedSlug(referralCode)) {
       throw new ApiError(409, 'That referral code is reserved. Try another.')
@@ -265,10 +251,7 @@ export const getPartnerSelfDashboardService = async (
   const partner = await loadPartnerForUser(userId)
 
   const [commissions, payouts] = await Promise.all([
-    PartnerCommission.find({ partnerId: partner._id })
-      .sort({ createdAt: -1 })
-      .limit(20)
-      .lean(),
+    PartnerCommission.find({ partnerId: partner._id }).sort({ createdAt: -1 }).limit(20).lean(),
     PartnerPayoutRequest.find({ partnerId: partner._id })
       .sort({ requestedAt: -1 })
       .limit(10)
@@ -276,9 +259,7 @@ export const getPartnerSelfDashboardService = async (
   ])
 
   const platformUrl = process.env.FRONTEND_PLATFORM_URL ?? ''
-  const referralUrl = partner.referralCode
-    ? `${platformUrl}/?ref=${partner.referralCode}`
-    : ''
+  const referralUrl = partner.referralCode ? `${platformUrl}/?ref=${partner.referralCode}` : ''
 
   return new ApiResponse(200, 'OK.', {
     partner: {
@@ -512,9 +493,7 @@ export const adminApprovePartnerService = async (
       },
     })
   } catch (err) {
-    logger.warn(
-      `Partner approval email failed for ${partner.email}: ${(err as Error).message}`,
-    )
+    logger.warn(`Partner approval email failed for ${partner.email}: ${(err as Error).message}`)
   }
 
   return new ApiResponse(200, 'Partner approved. Onboarding email sent.', { partner })
@@ -611,9 +590,11 @@ export const adminListPayoutsService = async (
   ])
 
   const items: AdminPayoutListItem[] = rows.map((r) => {
-    const pid = r.partnerId as unknown as
-      | { _id: Types.ObjectId; name: string; email: string }
-      | null
+    const pid = r.partnerId as unknown as {
+      _id: Types.ObjectId
+      name: string
+      email: string
+    } | null
     return {
       _id: r._id.toString(),
       partnerId: pid?._id.toString() ?? '',
@@ -699,16 +680,13 @@ export const adminMarkPayoutPaidService = async (
       })
     }
   } catch (err) {
-    logger.warn(
-      `Payout-paid email failed for payout=${payout._id}: ${(err as Error).message}`,
-    )
+    logger.warn(`Payout-paid email failed for payout=${payout._id}: ${(err as Error).message}`)
   }
 
   return new ApiResponse(200, 'Payout marked as paid.', { payoutRequest: payout })
 }
 
-const formatNairaFromKobo = (kobo: number): string =>
-  `₦${(kobo / 100).toLocaleString('en-NG')}`
+const formatNairaFromKobo = (kobo: number): string => `₦${(kobo / 100).toLocaleString('en-NG')}`
 
 export const adminRejectPayoutService = async (
   payoutId: string,
@@ -766,9 +744,7 @@ export const resolveActivePartnerByCode = async (
 /** Order moved to paid — create a 'pending' commission and bump
  *  the partner's pending balance. Idempotent: if a commission for
  *  this (partner, order) already exists, do nothing. */
-export const accrueCommissionOnOrderPaid = async (
-  order: OrderDocument,
-): Promise<void> => {
+export const accrueCommissionOnOrderPaid = async (order: OrderDocument): Promise<void> => {
   if (!order.referralCode) return
   const partner = await resolveActivePartnerByCode(order.referralCode)
   if (!partner) return
@@ -808,9 +784,7 @@ export const accrueCommissionOnOrderPaid = async (
 
 /** Order moved to delivered — flip its pending commission to available
  *  so it counts towards the cashable balance. */
-export const markCommissionAvailableForOrder = async (
-  order: OrderDocument,
-): Promise<void> => {
+export const markCommissionAvailableForOrder = async (order: OrderDocument): Promise<void> => {
   const commission = (await PartnerCommission.findOne({
     orderId: order._id,
     status: 'pending',
@@ -853,8 +827,7 @@ export const reverseCommissionForOrder = async (
   await commission.save()
 
   // Pending lives in pendingBalanceKobo, available and paid dock availableBalanceKobo (allowed to go negative, see model comment).
-  const balanceField =
-    previousStatus === 'pending' ? 'pendingBalanceKobo' : 'availableBalanceKobo'
+  const balanceField = previousStatus === 'pending' ? 'pendingBalanceKobo' : 'availableBalanceKobo'
   await Partner.updateOne(
     { _id: commission.partnerId },
     {

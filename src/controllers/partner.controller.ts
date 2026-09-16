@@ -27,9 +27,9 @@ export const applyAsPartner: ExpressFunction<ApplyPartnerInput> = async (req, re
 }
 
 export const verifyOnboardingToken: ExpressFunction = async (req, res, next) => {
-    try {
-      const token = String(req.query.token ?? '')
-      if (!token) throw new ApiError(400, 'Onboarding token is required.')
+  try {
+    const token = String(req.query.token ?? '')
+    if (!token) throw new ApiError(400, 'Onboarding token is required.')
     const response = await partnerService.verifyOnboardingTokenService(token)
     sendResponse(res, response)
   } catch (error) {
@@ -102,11 +102,7 @@ export const adminListPartners: ExpressFunction = async (req, res, next) => {
   }
 }
 
-export const adminGetPartner: ExpressFunction<unknown, { id: string }> = async (
-  req,
-  res,
-  next,
-) => {
+export const adminGetPartner: ExpressFunction<unknown, { id: string }> = async (req, res, next) => {
   try {
     const response = await partnerService.adminGetPartnerService(req.params.id)
     sendResponse(res, response)
@@ -132,10 +128,11 @@ export const adminApprovePartner: ExpressFunction<
   }
 }
 
-export const adminRejectPartner: ExpressFunction<
-  AdminRejectPartnerInput,
-  { id: string }
-> = async (req, res, next) => {
+export const adminRejectPartner: ExpressFunction<AdminRejectPartnerInput, { id: string }> = async (
+  req,
+  res,
+  next,
+) => {
   try {
     const response = await partnerService.adminRejectPartnerService(req.params.id, req.body)
     sendResponse(res, response)
@@ -144,10 +141,11 @@ export const adminRejectPartner: ExpressFunction<
   }
 }
 
-export const adminUpdatePartner: ExpressFunction<
-  AdminUpdatePartnerInput,
-  { id: string }
-> = async (req, res, next) => {
+export const adminUpdatePartner: ExpressFunction<AdminUpdatePartnerInput, { id: string }> = async (
+  req,
+  res,
+  next,
+) => {
   try {
     const response = await partnerService.adminUpdatePartnerService(req.params.id, req.body)
     sendResponse(res, response)
@@ -183,10 +181,11 @@ export const adminMarkPayoutPaid: ExpressFunction<
   }
 }
 
-export const adminRejectPayout: ExpressFunction<
-  AdminRejectPayoutInput,
-  { id: string }
-> = async (req, res, next) => {
+export const adminRejectPayout: ExpressFunction<AdminRejectPayoutInput, { id: string }> = async (
+  req,
+  res,
+  next,
+) => {
   try {
     const actorUserId = req.user?.userId ?? null
     const response = await partnerService.adminRejectPayoutService(

@@ -19,9 +19,7 @@ router.get('/sitemap.xml', async (_req, res) => {
   try {
     const [products, posts] = await Promise.all([
       Product.find({ isActive: true }).select('slug updatedAt').lean(),
-      ContentPost.find({ status: 'published' })
-        .select('slug kind updatedAt')
-        .lean(),
+      ContentPost.find({ status: 'published' }).select('slug kind updatedAt').lean(),
     ])
 
     const urls: { loc: string; lastmod?: string }[] = [

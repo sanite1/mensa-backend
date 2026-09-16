@@ -77,9 +77,11 @@ export const validateUpdateDiscount = validate({
     maxUses,
     isActive: Joi.boolean(),
     description,
-  }).min(1).messages({
-    'object.min': 'Send at least one field to update.',
-  }),
+  })
+    .min(1)
+    .messages({
+      'object.min': 'Send at least one field to update.',
+    }),
 })
 
 // ── Public: POST /checkout/apply-discount ──────────────────────────

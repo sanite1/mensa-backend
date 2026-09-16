@@ -3,10 +3,7 @@
 
 import type { Request, Response, NextFunction } from 'express'
 import { paystackService } from '../services/external/paystack.service'
-import {
-  markOrderFailedService,
-  markOrderPaidService,
-} from '../services/order.service'
+import { markOrderFailedService, markOrderPaidService } from '../services/order.service'
 import { isInvoiceReference, markInvoicePaidService } from '../services/invoice.service'
 import { sendResponse } from '../helpers/sendResponse'
 import { ApiError } from '../errors/apiError'
@@ -89,11 +86,7 @@ interface DevFireBody {
   event?: 'charge.success' | 'charge.failed'
 }
 
-export const paystackDevFire: ExpressFunction<DevFireBody> = async (
-  req,
-  res,
-  next,
-) => {
+export const paystackDevFire: ExpressFunction<DevFireBody> = async (req, res, next) => {
   try {
     if (process.env.NODE_ENV === 'production') {
       throw new ApiError(403, 'Dev-fire is disabled in production.')

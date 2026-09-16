@@ -61,7 +61,4 @@ const ContentPostSchema = new Schema<IContentPost, ContentPostModel>(
 
 ContentPostSchema.index({ title: 'text', excerpt: 'text', body: 'text' })
 
-export const ContentPost = model<IContentPost, ContentPostModel>(
-  'ContentPost',
-  ContentPostSchema,
-)
+export const ContentPost = model<IContentPost, ContentPostModel>('ContentPost', ContentPostSchema)

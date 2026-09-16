@@ -6,13 +6,7 @@ const objectId = Joi.string()
   .messages({ 'string.pattern.base': 'Malformed id.' })
 
 const kind = Joi.string().valid('journal', 'education')
-const category = Joi.string().valid(
-  'classroom',
-  'product',
-  'community',
-  'policy',
-  'care',
-)
+const category = Joi.string().valid('classroom', 'product', 'community', 'policy', 'care')
 const status = Joi.string().valid('draft', 'published')
 
 const slug = Joi.string()

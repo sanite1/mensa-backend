@@ -5,13 +5,7 @@ const objectId = Joi.string()
   .pattern(/^[0-9a-fA-F]{24}$/)
   .messages({ 'string.pattern.base': 'Malformed id.' })
 
-const source = Joi.string().valid(
-  'footer',
-  'mobile_drawer',
-  'partner_apply',
-  'checkout',
-  'other',
-)
+const source = Joi.string().valid('footer', 'mobile_drawer', 'partner_apply', 'checkout', 'other')
 const status = Joi.string().valid('subscribed', 'unsubscribed')
 
 // ── POST /newsletter/subscribe ───────────────────────────────────

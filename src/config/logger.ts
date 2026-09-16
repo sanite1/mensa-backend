@@ -8,14 +8,22 @@ import path from 'path'
 const { combine, timestamp, printf, colorize, errors } = winston.format
 
 const logFormat = printf((info) => {
-  const { level, message, timestamp: ts, stack, ...rest } = info as Record<string, unknown> & {
+  const {
+    level,
+    message,
+    timestamp: ts,
+    stack,
+    ...rest
+  } = info as Record<string, unknown> & {
     level: string
     message: unknown
     timestamp?: string
     stack?: string
   }
   const base = `${ts} [${level}] ${stack ?? message}`
-  const extras = Object.keys(rest).filter((k) => k !== 'splat' && k !== Symbol.for('level').toString())
+  const extras = Object.keys(rest).filter(
+    (k) => k !== 'splat' && k !== Symbol.for('level').toString(),
+  )
   if (extras.length === 0) return base
   const meta: Record<string, unknown> = {}
   for (const k of extras) meta[k] = rest[k]
@@ -78,10 +86,6 @@ if (shouldLogToFile()) {
 
 export const logger = winston.createLogger({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-  format: combine(
-    errors({ stack: true }),
-    timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    logFormat,
-  ),
+  format: combine(errors({ stack: true }), timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), logFormat),
   transports,
 })

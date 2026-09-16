@@ -31,7 +31,9 @@ function normaliseAddress(input: UserAddressInput): Omit<IUserAddress, '_id' | '
 /** Cheap fingerprint of an address so we can dedupe identical entries
  *  the customer might re-submit at checkout. Case-insensitive on the
  *  open-text fields. */
-function addressFingerprint(a: Pick<IUserAddress, 'line1' | 'line2' | 'city' | 'state' | 'postal'>): string {
+function addressFingerprint(
+  a: Pick<IUserAddress, 'line1' | 'line2' | 'city' | 'state' | 'postal'>,
+): string {
   return [
     a.line1.toLowerCase().trim(),
     (a.line2 ?? '').toLowerCase().trim(),
@@ -177,9 +179,7 @@ export const deleteMyAddressService = async (
   if (!user) throw new ApiError(404, 'User not found.')
 
   const before = user.addresses.length
-  const wasDefault = user.addresses.find(
-    (a) => a._id?.toString() === addressId,
-  )?.isDefault
+  const wasDefault = user.addresses.find((a) => a._id?.toString() === addressId)?.isDefault
   user.addresses = user.addresses.filter(
     (a) => a._id?.toString() !== addressId,
   ) as typeof user.addresses

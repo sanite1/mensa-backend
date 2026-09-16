@@ -215,10 +215,7 @@ export const forgotPasswordService = async (email: string): Promise<ApiResponse>
     logger.info(`Forgot-password request for unknown email: ${normalised}`)
   }
 
-  return new ApiResponse(
-    200,
-    'If an account with that email exists, a reset link has been sent.',
-  )
+  return new ApiResponse(200, 'If an account with that email exists, a reset link has been sent.')
 }
 
 /* ── Reset password ── */

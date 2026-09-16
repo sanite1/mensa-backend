@@ -91,9 +91,7 @@ export const applyDiscountService = async (
 /** Find + validate a code without mutating it. Used inside
  *  initializeCheckoutService to surface a friendly error before any
  *  stock is reserved. */
-export const findUsableDiscountByCode = async (
-  code: string,
-): Promise<DiscountDocument | null> => {
+export const findUsableDiscountByCode = async (code: string): Promise<DiscountDocument | null> => {
   const normalised = normaliseCode(code)
   if (!normalised) return null
   const discount = (await Discount.findOne({ code: normalised })) as DiscountDocument | null
@@ -117,10 +115,7 @@ export const reserveRedemptionByCode = async (code: string): Promise<boolean> =>
     {
       code: normalised,
       isActive: true,
-      $or: [
-        { maxUses: null },
-        { $expr: { $lt: ['$usedCount', '$maxUses'] } },
-      ],
+      $or: [{ maxUses: null }, { $expr: { $lt: ['$usedCount', '$maxUses'] } }],
     },
     { $inc: { usedCount: 1 } },
     { new: true },
@@ -133,10 +128,7 @@ export const reserveRedemptionByCode = async (code: string): Promise<boolean> =>
 export const releaseRedemptionByCode = async (code: string): Promise<void> => {
   const normalised = normaliseCode(code)
   if (!normalised) return
-  await Discount.updateOne(
-    { code: normalised, usedCount: { $gt: 0 } },
-    { $inc: { usedCount: -1 } },
-  )
+  await Discount.updateOne({ code: normalised, usedCount: { $gt: 0 } }, { $inc: { usedCount: -1 } })
 }
 
 // ─── Admin: list ─────────────────────────────────────────────────
@@ -239,9 +231,7 @@ export const adminUpdateDiscountService = async (
 
 // ─── Admin: delete (hard delete; codes are cheap to recreate) ────
 
-export const adminDeleteDiscountService = async (
-  id: string,
-): Promise<ApiResponse> => {
+export const adminDeleteDiscountService = async (id: string): Promise<ApiResponse> => {
   if (!Types.ObjectId.isValid(id)) throw new ApiError(404, 'Discount not found.')
   const result = await Discount.deleteOne({ _id: id })
   if (result.deletedCount === 0) throw new ApiError(404, 'Discount not found.')

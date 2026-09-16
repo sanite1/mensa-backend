@@ -43,10 +43,7 @@ export interface CloudinaryUploadOptions {
 
 export const cloudinaryService = {
   /** Streams a buffer to Cloudinary, pairs with Multer memoryStorage so files never hit disk. */
-  async upload(
-    buffer: Buffer,
-    options: CloudinaryUploadOptions,
-  ): Promise<CloudinaryUploadResult> {
+  async upload(buffer: Buffer, options: CloudinaryUploadOptions): Promise<CloudinaryUploadResult> {
     assertCloudinaryEnv()
     return new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(

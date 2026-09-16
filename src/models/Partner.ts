@@ -42,13 +42,7 @@ const PartnerSchema = new Schema<IPartner, PartnerModelType>(
 
     status: {
       type: String,
-      enum: [
-        'pending',
-        'approved',
-        'active',
-        'rejected',
-        'suspended',
-      ] satisfies PartnerStatus[],
+      enum: ['pending', 'approved', 'active', 'rejected', 'suspended'] satisfies PartnerStatus[],
       default: 'pending',
       index: true,
     },
@@ -98,12 +92,7 @@ const PartnerCommissionSchema = new Schema<IPartnerCommission, PartnerCommission
     amountKobo: { type: Number, required: true, min: 0 },
     status: {
       type: String,
-      enum: [
-        'pending',
-        'available',
-        'paid',
-        'reversed',
-      ] satisfies PartnerCommissionStatus[],
+      enum: ['pending', 'available', 'paid', 'reversed'] satisfies PartnerCommissionStatus[],
       default: 'pending',
       index: true,
     },
@@ -131,10 +120,7 @@ export const PartnerCommission = model<IPartnerCommission, PartnerCommissionMode
 
 type PartnerPayoutRequestModelType = Model<IPartnerPayoutRequest>
 
-const PartnerPayoutRequestSchema = new Schema<
-  IPartnerPayoutRequest,
-  PartnerPayoutRequestModelType
->(
+const PartnerPayoutRequestSchema = new Schema<IPartnerPayoutRequest, PartnerPayoutRequestModelType>(
   {
     partnerId: { type: Schema.Types.ObjectId, ref: 'Partner', required: true, index: true },
     amountKobo: { type: Number, required: true, min: 0 },
@@ -154,7 +140,7 @@ const PartnerPayoutRequestSchema = new Schema<
   { timestamps: true },
 )
 
-export const PartnerPayoutRequest = model<
-  IPartnerPayoutRequest,
-  PartnerPayoutRequestModelType
->('PartnerPayoutRequest', PartnerPayoutRequestSchema)
+export const PartnerPayoutRequest = model<IPartnerPayoutRequest, PartnerPayoutRequestModelType>(
+  'PartnerPayoutRequest',
+  PartnerPayoutRequestSchema,
+)

@@ -58,37 +58,31 @@ export const adminStatsService = async (): Promise<ApiResponse<AdminStats>> => {
   const todayStart = startOfToday()
   const weekStart = sevenDaysAgo()
 
-  const [
-    todaysOrders,
-    revenueAgg,
-    pendingFulfilment,
-    products,
-    recentOrdersRaw,
-    subscriberCounts,
-  ] = await Promise.all([
-    Order.countDocuments({
-      createdAt: { $gte: todayStart },
-      'payment.status': 'paid',
-    }),
-    Order.aggregate<{ _id: null; total: number }>([
-      {
-        $match: {
-          'payment.status': 'paid',
-          'payment.paidAt': { $gte: weekStart },
+  const [todaysOrders, revenueAgg, pendingFulfilment, products, recentOrdersRaw, subscriberCounts] =
+    await Promise.all([
+      Order.countDocuments({
+        createdAt: { $gte: todayStart },
+        'payment.status': 'paid',
+      }),
+      Order.aggregate<{ _id: null; total: number }>([
+        {
+          $match: {
+            'payment.status': 'paid',
+            'payment.paidAt': { $gte: weekStart },
+          },
         },
-      },
-      { $group: { _id: null, total: { $sum: '$totals.total' } } },
-    ]),
-    Order.countDocuments({
-      'payment.status': 'paid',
-      'fulfilment.status': { $in: ['pending', 'processing'] },
-    }),
-    Product.find({ isActive: true }).select('slug name variants').lean(),
-    Order.find({}).sort({ createdAt: -1 }).limit(8).lean() as unknown as Promise<
-      (OrderDocument & { _id: { toString(): string } })[]
-    >,
-    subscriberCountsService(),
-  ])
+        { $group: { _id: null, total: { $sum: '$totals.total' } } },
+      ]),
+      Order.countDocuments({
+        'payment.status': 'paid',
+        'fulfilment.status': { $in: ['pending', 'processing'] },
+      }),
+      Product.find({ isActive: true }).select('slug name variants').lean(),
+      Order.find({}).sort({ createdAt: -1 }).limit(8).lean() as unknown as Promise<
+        (OrderDocument & { _id: { toString(): string } })[]
+      >,
+      subscriberCountsService(),
+    ])
 
   const weekRevenueKobo = revenueAgg[0]?.total ?? 0
 
@@ -313,8 +307,7 @@ export interface AdminCustomersListResult {
   pagination: { page: number; pageSize: number; total: number; totalPages: number }
 }
 
-const escapeRegex = (input: string): string =>
-  input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const escapeRegex = (input: string): string => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 export const adminListCustomersService = async (
   params: AdminCustomersListParams,

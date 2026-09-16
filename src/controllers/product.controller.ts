@@ -86,11 +86,7 @@ export const updateProduct: ExpressFunction<UpdateProductInput, { slug: string }
 }
 
 /* ── Admin: soft delete ───────────────────────────────────────────── */
-export const deleteProduct: ExpressFunction<unknown, { slug: string }> = async (
-  req,
-  res,
-  next,
-) => {
+export const deleteProduct: ExpressFunction<unknown, { slug: string }> = async (req, res, next) => {
   try {
     const response = await service.deleteProductService(req.params.slug)
     sendResponse(res, response)

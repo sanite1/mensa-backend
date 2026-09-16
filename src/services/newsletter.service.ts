@@ -18,8 +18,7 @@ import type {
 const DEFAULT_PAGE_SIZE = 24
 const MAX_PAGE_SIZE = 200
 
-const escapeRegex = (input: string): string =>
-  input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const escapeRegex = (input: string): string => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 // ─── Public: subscribe ──────────────────────────────────────────
 export const subscribeService = async (

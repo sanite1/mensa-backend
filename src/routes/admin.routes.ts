@@ -31,10 +31,7 @@ import {
   validateListDiscounts,
   validateUpdateDiscount,
 } from '../validations/discount.validation'
-import {
-  validateCustomerIdParam,
-  validateListCustomers,
-} from '../validations/admin.validation'
+import { validateCustomerIdParam, validateListCustomers } from '../validations/admin.validation'
 import {
   validateContentIdParam,
   validateCreateContent,
@@ -89,26 +86,14 @@ router.get('/reports', adminController.getAdminReports)
 
 // ── Customers ─────────────────────────────────────────────────────
 router.get('/customers', validateListCustomers, adminController.adminListCustomers)
-router.get(
-  '/customers/:id',
-  validateCustomerIdParam,
-  adminController.adminGetCustomer,
-)
+router.get('/customers/:id', validateCustomerIdParam, adminController.adminGetCustomer)
 
 // ── Products ──────────────────────────────────────────────────────
 router.get('/products', validateListProducts, productController.adminListProducts)
-router.get(
-  '/products/:slug',
-  validateProductSlugParam,
-  productController.adminGetProductBySlug,
-)
+router.get('/products/:slug', validateProductSlugParam, productController.adminGetProductBySlug)
 router.post('/products', validateCreateProduct, productController.createProduct)
 router.put('/products/:slug', validateUpdateProduct, productController.updateProduct)
-router.delete(
-  '/products/:slug',
-  validateProductSlugParam,
-  productController.deleteProduct,
-)
+router.delete('/products/:slug', validateProductSlugParam, productController.deleteProduct)
 // Permanent delete, removes the document and its Cloudinary images.
 router.delete(
   '/products/:slug/permanent',
@@ -136,11 +121,7 @@ router.delete(
 
 // ── Orders ────────────────────────────────────────────────────────
 router.get('/orders', validateListOrders, orderController.adminListOrders)
-router.get(
-  '/orders/:id',
-  validateAdminOrderIdParam,
-  orderController.adminGetOrder,
-)
+router.get('/orders/:id', validateAdminOrderIdParam, orderController.adminGetOrder)
 router.patch(
   '/orders/:id/fulfilment',
   validateUpdateOrderFulfilment,
@@ -148,31 +129,11 @@ router.patch(
 )
 
 // ── Discounts ─────────────────────────────────────────────────────
-router.get(
-  '/discounts',
-  validateListDiscounts,
-  discountController.adminListDiscounts,
-)
-router.get(
-  '/discounts/:id',
-  validateDiscountIdParam,
-  discountController.adminGetDiscount,
-)
-router.post(
-  '/discounts',
-  validateCreateDiscount,
-  discountController.adminCreateDiscount,
-)
-router.put(
-  '/discounts/:id',
-  validateUpdateDiscount,
-  discountController.adminUpdateDiscount,
-)
-router.delete(
-  '/discounts/:id',
-  validateDiscountIdParam,
-  discountController.adminDeleteDiscount,
-)
+router.get('/discounts', validateListDiscounts, discountController.adminListDiscounts)
+router.get('/discounts/:id', validateDiscountIdParam, discountController.adminGetDiscount)
+router.post('/discounts', validateCreateDiscount, discountController.adminCreateDiscount)
+router.put('/discounts/:id', validateUpdateDiscount, discountController.adminUpdateDiscount)
+router.delete('/discounts/:id', validateDiscountIdParam, discountController.adminDeleteDiscount)
 
 // ── Content posts ────────────────────────────────────────────────
 // Standalone cover upload (multipart), registered before the :id routes so "upload-image" is never captured as a post id.
@@ -185,11 +146,7 @@ router.get('/content', validateListContent, contentController.adminListContent)
 router.get('/content/:id', validateContentIdParam, contentController.adminGetContent)
 router.post('/content', validateCreateContent, contentController.adminCreateContent)
 router.put('/content/:id', validateUpdateContent, contentController.adminUpdateContent)
-router.delete(
-  '/content/:id',
-  validateContentIdParam,
-  contentController.adminDeleteContent,
-)
+router.delete('/content/:id', validateContentIdParam, contentController.adminDeleteContent)
 
 // ── Partnerships ─────────────────────────────────────────────────
 // Specific sub paths (individuals, payouts) MUST come before the catch all /partnerships/:id, otherwise :id captures them and routes to the org controller.
@@ -273,32 +230,16 @@ router.get('/invoices/:id', validateInvoiceIdParam, invoiceController.adminGetIn
 router.put('/invoices/:id', validateUpdateInvoice, invoiceController.adminUpdateInvoice)
 router.post('/invoices/:id/send', validateInvoiceIdParam, invoiceController.adminSendInvoice)
 router.post('/invoices/:id/void', validateInvoiceIdParam, invoiceController.adminVoidInvoice)
-router.post(
-  '/invoices/:id/remind',
-  validateInvoiceIdParam,
-  invoiceController.adminRemindInvoice,
-)
+router.post('/invoices/:id/remind', validateInvoiceIdParam, invoiceController.adminRemindInvoice)
 
 // ── Starter set leads ───────────────────────────────────────────
 router.get('/leads', validateAdminListLeads, leadController.adminListLeads)
-router.patch(
-  '/leads/:id',
-  validateUpdateLeadStatus,
-  leadController.adminUpdateLeadStatus,
-)
+router.patch('/leads/:id', validateUpdateLeadStatus, leadController.adminUpdateLeadStatus)
 router.delete('/leads/:id', validateLeadIdParam, leadController.adminDeleteLead)
 
 // B2B organisation partnerships (apply / list / verify)
-router.get(
-  '/partnerships',
-  validateListPartnerships,
-  b2bController.adminListPartnerships,
-)
-router.get(
-  '/partnerships/:id',
-  validatePartnershipIdParam,
-  b2bController.adminGetPartnership,
-)
+router.get('/partnerships', validateListPartnerships, b2bController.adminListPartnerships)
+router.get('/partnerships/:id', validatePartnershipIdParam, b2bController.adminGetPartnership)
 router.patch(
   '/partnerships/:id/verify',
   validateVerifyPartnership,

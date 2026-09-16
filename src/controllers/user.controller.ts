@@ -2,10 +2,7 @@ import { sendResponse } from '../helpers/sendResponse'
 import { ApiError } from '../errors/apiError'
 import * as service from '../services/user.service'
 import type { ExpressFunction } from '../interfaces/express.interface'
-import type {
-  UpdateUserAddressInput,
-  UserAddressInput,
-} from '../interfaces/user.interface'
+import type { UpdateUserAddressInput, UserAddressInput } from '../interfaces/user.interface'
 
 function requireUserId(userId: string | undefined): string {
   if (!userId) throw new ApiError(401, 'You are not signed in.')
@@ -24,11 +21,7 @@ export const listMyAddresses: ExpressFunction = async (req, res, next) => {
 }
 
 /* ── POST /users/me/addresses ── */
-export const addMyAddress: ExpressFunction<UserAddressInput> = async (
-  req,
-  res,
-  next,
-) => {
+export const addMyAddress: ExpressFunction<UserAddressInput> = async (req, res, next) => {
   try {
     const userId = requireUserId(req.user?.userId)
     const response = await service.addMyAddressService(userId, req.body)
@@ -39,17 +32,14 @@ export const addMyAddress: ExpressFunction<UserAddressInput> = async (
 }
 
 /* ── PUT /users/me/addresses/:id ── */
-export const updateMyAddress: ExpressFunction<
-  UpdateUserAddressInput,
-  { id: string }
-> = async (req, res, next) => {
+export const updateMyAddress: ExpressFunction<UpdateUserAddressInput, { id: string }> = async (
+  req,
+  res,
+  next,
+) => {
   try {
     const userId = requireUserId(req.user?.userId)
-    const response = await service.updateMyAddressService(
-      userId,
-      req.params.id,
-      req.body,
-    )
+    const response = await service.updateMyAddressService(userId, req.params.id, req.body)
     sendResponse(res, response)
   } catch (error) {
     next(error)
@@ -72,11 +62,7 @@ export const setDefaultMyAddress: ExpressFunction<unknown, { id: string }> = asy
 }
 
 /* ── DELETE /users/me/addresses/:id ── */
-export const deleteMyAddress: ExpressFunction<unknown, { id: string }> = async (
-  req,
-  res,
-  next,
-) => {
+export const deleteMyAddress: ExpressFunction<unknown, { id: string }> = async (req, res, next) => {
   try {
     const userId = requireUserId(req.user?.userId)
     const response = await service.deleteMyAddressService(userId, req.params.id)

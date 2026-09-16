@@ -52,9 +52,7 @@ export async function sendMail(opts: {
       `Email sent: template=${opts.template} to=${opts.to} messageId=${info.messageId ?? '?'} accepted=${(info.accepted ?? []).length} rejected=${(info.rejected ?? []).length}`,
     )
     if ((info.rejected ?? []).length > 0) {
-      logger.warn(
-        `Email rejected addresses for ${opts.template}: ${JSON.stringify(info.rejected)}`,
-      )
+      logger.warn(`Email rejected addresses for ${opts.template}: ${JSON.stringify(info.rejected)}`)
     }
   } catch (err) {
     // Log the SMTP side reason, most "no email arrived" reports trace to a bad app password or a From address the SMTP account does not own (Zoho rejects those with 553 relaying disallowed).

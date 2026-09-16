@@ -3,19 +3,10 @@ import type { Document, Types } from 'mongoose'
 // ── Status enums ─────────────────────────────────────────────────
 
 /** Application lifecycle: pending (awaiting review), approved (onboarding email sent, not yet onboarded), active (can earn and request payouts), rejected, suspended (no new accrual, balance preserved). */
-export type PartnerStatus =
-  | 'pending'
-  | 'approved'
-  | 'active'
-  | 'rejected'
-  | 'suspended'
+export type PartnerStatus = 'pending' | 'approved' | 'active' | 'rejected' | 'suspended'
 
 /** Commission lifecycle: pending (paid, not delivered), available (delivered, cashable), paid (bundled into a paid PayoutRequest), reversed (order refunded or cancelled after accrual). */
-export type PartnerCommissionStatus =
-  | 'pending'
-  | 'available'
-  | 'paid'
-  | 'reversed'
+export type PartnerCommissionStatus = 'pending' | 'available' | 'paid' | 'reversed'
 
 /** Payout lifecycle: pending (awaiting admin), paid (recorded manually, linked commissions flip to paid), rejected (commissions reset to available). */
 export type PartnerPayoutStatus = 'pending' | 'paid' | 'rejected'
@@ -99,11 +90,7 @@ export interface IPartnerCommission {
   updatedAt: Date
 }
 
-export type PartnerCommissionDocument = Document<
-  Types.ObjectId,
-  unknown,
-  IPartnerCommission
-> &
+export type PartnerCommissionDocument = Document<Types.ObjectId, unknown, IPartnerCommission> &
   IPartnerCommission
 
 // ── PartnerPayoutRequest ─────────────────────────────────────────

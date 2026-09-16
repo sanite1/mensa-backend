@@ -13,21 +13,11 @@ const router = Router()
 
 // Shipping rates are read-ish (no DB mutation), but keep them gated by a
 // modest rate limit to stop scraping.
-router.post(
-  '/shipping-rates',
-  publicReadLimiter,
-  validateShippingRates,
-  controller.shippingRates,
-)
+router.post('/shipping-rates', publicReadLimiter, validateShippingRates, controller.shippingRates)
 
 // Initialize is mutating + creates Paystack transactions, so use the heavier
 // authed limiter even for guest checkouts.
-router.post(
-  '/initialize',
-  authedLimiter,
-  validateInitializeCheckout,
-  controller.initializeCheckout,
-)
+router.post('/initialize', authedLimiter, validateInitializeCheckout, controller.initializeCheckout)
 
 // Verify on return, called by the confirmation page on mount for an immediate authoritative outcome without waiting on the webhook. Idempotent.
 router.post(

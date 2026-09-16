@@ -7,10 +7,7 @@ import type {
 
 type NewsletterSubscriberModel = Model<INewsletterSubscriber>
 
-const NewsletterSubscriberSchema = new Schema<
-  INewsletterSubscriber,
-  NewsletterSubscriberModel
->(
+const NewsletterSubscriberSchema = new Schema<INewsletterSubscriber, NewsletterSubscriberModel>(
   {
     email: {
       type: String,
@@ -46,7 +43,7 @@ const NewsletterSubscriberSchema = new Schema<
   { timestamps: true },
 )
 
-export const NewsletterSubscriber = model<
-  INewsletterSubscriber,
-  NewsletterSubscriberModel
->('NewsletterSubscriber', NewsletterSubscriberSchema)
+export const NewsletterSubscriber = model<INewsletterSubscriber, NewsletterSubscriberModel>(
+  'NewsletterSubscriber',
+  NewsletterSubscriberSchema,
+)

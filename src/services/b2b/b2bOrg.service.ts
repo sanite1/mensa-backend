@@ -18,8 +18,7 @@ import type {
 const DEFAULT_PAGE_SIZE = 24
 const MAX_PAGE_SIZE = 100
 
-const escapeRegex = (input: string): string =>
-  input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const escapeRegex = (input: string): string => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 // ─── Public: submit a partnership application ────────────────────
 export const submitB2BOrgService = async (
@@ -103,10 +102,7 @@ export const adminVerifyB2BOrgService = async (
   if (!org) throw new ApiError(404, 'Partnership not found.')
 
   if (org.verificationStatus === input.verificationStatus) {
-    throw new ApiError(
-      409,
-      `Partnership is already ${input.verificationStatus}.`,
-    )
+    throw new ApiError(409, `Partnership is already ${input.verificationStatus}.`)
   }
 
   org.verificationStatus = input.verificationStatus

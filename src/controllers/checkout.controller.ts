@@ -1,17 +1,10 @@
 import { sendResponse } from '../helpers/sendResponse'
 import * as service from '../services/order.service'
 import type { ExpressFunction } from '../interfaces/express.interface'
-import type {
-  InitializeCheckoutInput,
-  ShippingRatesInput,
-} from '../interfaces/order.interface'
+import type { InitializeCheckoutInput, ShippingRatesInput } from '../interfaces/order.interface'
 
 /* ── POST /checkout/shipping-rates ── */
-export const shippingRates: ExpressFunction<ShippingRatesInput> = async (
-  req,
-  res,
-  next,
-) => {
+export const shippingRates: ExpressFunction<ShippingRatesInput> = async (req, res, next) => {
   try {
     const response = await service.getShippingRatesService(req.body)
     sendResponse(res, response)

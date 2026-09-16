@@ -2,19 +2,9 @@ import type { Document, Types } from 'mongoose'
 
 // ── Status enums ─────────────────────────────────────────────────────
 
-export type PaymentStatus =
-  | 'pending'
-  | 'paid'
-  | 'failed'
-  | 'refunded'
-  | 'partial_refund'
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded' | 'partial_refund'
 
-export type FulfilmentStatus =
-  | 'pending'
-  | 'processing'
-  | 'shipped'
-  | 'delivered'
-  | 'cancelled'
+export type FulfilmentStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
 
 /** The id of the admin defined delivery option the customer picked.
  *  Legacy orders carry the old 'inhouse' / 'sendbox' literals. */

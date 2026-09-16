@@ -55,10 +55,7 @@ app.use(
   express.json({
     verify: (req, _res, buf) => {
       const url = req.url ?? ''
-      if (
-        url.startsWith('/api/v1/webhooks') ||
-        url.startsWith('/api/payment/webhook')
-      ) {
+      if (url.startsWith('/api/v1/webhooks') || url.startsWith('/api/payment/webhook')) {
         ;(req as express.Request).rawBody = Buffer.from(buf)
       }
     },
