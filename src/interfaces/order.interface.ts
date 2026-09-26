@@ -189,8 +189,19 @@ export interface InitializeCheckoutResult {
 export interface ListOrdersQuery {
   paymentStatus?: PaymentStatus
   fulfilmentStatus?: FulfilmentStatus
+  /** Comma separated multi selects from the admin column filters. */
+  paymentStatuses?: string
+  fulfilmentStatuses?: string
+  states?: string
+  deliveries?: string
   page?: number
   pageSize?: number
+}
+
+/** Distinct values the admin column filters can offer. */
+export interface OrderFacets {
+  states: string[]
+  deliveries: string[]
 }
 
 /** Body for PATCH /admin/orders/:id/fulfilment. Moves the order forward through the lifecycle or cancels before shipping. On shipped, optional trackingCode / trackingUrl covers in house rider orders. */

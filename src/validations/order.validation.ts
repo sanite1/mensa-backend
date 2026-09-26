@@ -149,6 +149,11 @@ export const validateListOrders = validate({
   query: Joi.object({
     paymentStatus: orderStatus,
     fulfilmentStatus,
+    // Comma separated lists from the admin column filters.
+    paymentStatuses: Joi.string().trim().max(200).allow(''),
+    fulfilmentStatuses: Joi.string().trim().max(200).allow(''),
+    states: Joi.string().trim().max(2000).allow(''),
+    deliveries: Joi.string().trim().max(2000).allow(''),
     page: Joi.number().integer().min(1).default(1),
     pageSize: Joi.number().integer().min(1).max(100).default(24),
   }),

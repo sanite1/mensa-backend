@@ -37,6 +37,7 @@ import type {
   IOrderLine,
   ListOrdersQuery,
   ListOrdersResult,
+  OrderFacets,
   OrderDocument,
   ShippingRateOption,
   ShippingRatesInput,
@@ -680,6 +681,39 @@ export const trackOrderService = async (
 
 // ─── Admin reads ──────────────────────────────────────────────────
 
+/** Every distinct state and delivery option across all orders, so the
+ *  column filters offer real values rather than just the loaded page. */
+export const adminOrderFacetsService = async (): Promise<ApiResponse<OrderFacets>> => {
+  const [rawStates, rawLabels, rawMethods] = await Promise.all([
+    Order.distinct('address.state') as Promise<unknown[]>,
+    Order.distinct('fulfilment.shippingLabel') as Promise<unknown[]>,
+    Order.distinct('fulfilment.shippingMethod') as Promise<unknown[]>,
+  ])
+  const clean = (values: unknown[]): string[] =>
+    values.filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+
+  const states = clean(rawStates).sort((a, b) => a.localeCompare(b))
+  const legacy = clean(rawMethods)
+    .map((m) => LEGACY_SHIPPING_LABEL[m])
+    .filter((label): label is string => !!label)
+  const deliveries = Array.from(new Set([...clean(rawLabels), ...legacy])).sort((a, b) =>
+    a.localeCompare(b),
+  )
+  return new ApiResponse(200, 'OK.', { states, deliveries })
+}
+
+/** Labels for orders created before delivery options carried a name. */
+const LEGACY_SHIPPING_LABEL: Record<string, string> = {
+  inhouse: 'In house rider',
+  sendbox: 'Sendbox nationwide',
+}
+
+const splitList = (value: string | undefined): string[] =>
+  (value ?? '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+
 export const adminListOrdersService = async (
   query: ListOrdersQuery,
 ): Promise<ApiResponse<ListOrdersResult>> => {
@@ -688,6 +722,32 @@ export const adminListOrdersService = async (
   const filter: FilterQuery<IOrder> = {}
   if (query.paymentStatus) filter['payment.status'] = query.paymentStatus
   if (query.fulfilmentStatus) filter['fulfilment.status'] = query.fulfilmentStatus
+
+  // Multi selects from the column filters. Each narrows independently.
+  const paymentStatuses = splitList(query.paymentStatuses)
+  if (paymentStatuses.length > 0) filter['payment.status'] = { $in: paymentStatuses }
+  const fulfilmentStatuses = splitList(query.fulfilmentStatuses)
+  if (fulfilmentStatuses.length > 0) filter['fulfilment.status'] = { $in: fulfilmentStatuses }
+  const states = splitList(query.states)
+  if (states.length > 0) filter['address.state'] = { $in: states }
+  const deliveries = splitList(query.deliveries)
+  if (deliveries.length > 0) {
+    // Match the snapshotted label, or the legacy method for old orders.
+    const legacyMethods = Object.entries(LEGACY_SHIPPING_LABEL)
+      .filter(([, label]) => deliveries.includes(label))
+      .map(([method]) => method)
+    filter.$or = [
+      { 'fulfilment.shippingLabel': { $in: deliveries } },
+      ...(legacyMethods.length > 0
+        ? [
+            {
+              'fulfilment.shippingLabel': { $in: [null, ''] },
+              'fulfilment.shippingMethod': { $in: legacyMethods },
+            },
+          ]
+        : []),
+    ]
+  }
 
   const [items, total] = await Promise.all([
     Order.find(filter)

@@ -55,6 +55,15 @@ export const adminListOrders: ExpressFunction = async (req, res, next) => {
   }
 }
 
+/* ── GET /admin/orders/facets ── (admin) */
+export const adminOrderFacets: ExpressFunction = async (_req, res, next) => {
+  try {
+    sendResponse(res, await service.adminOrderFacetsService())
+  } catch (error) {
+    next(error)
+  }
+}
+
 /* ── GET /admin/orders/:id ── (admin) */
 export const adminGetOrder: ExpressFunction<unknown, { id: string }> = async (req, res, next) => {
   try {

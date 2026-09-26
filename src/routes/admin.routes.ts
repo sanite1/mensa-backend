@@ -121,6 +121,8 @@ router.delete(
 
 // ── Orders ────────────────────────────────────────────────────────
 router.get('/orders', validateListOrders, orderController.adminListOrders)
+// Before /orders/:id so "facets" is never read as an order id.
+router.get('/orders/facets', orderController.adminOrderFacets)
 router.get('/orders/:id', validateAdminOrderIdParam, orderController.adminGetOrder)
 router.patch(
   '/orders/:id/fulfilment',
