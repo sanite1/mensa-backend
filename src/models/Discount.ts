@@ -36,6 +36,9 @@ const DiscountSchema = new Schema<IDiscount, DiscountModel>(
     usedCount: { type: Number, default: 0, min: 0 },
     isActive: { type: Boolean, default: true, index: true },
     description: { type: String, default: '', trim: true },
+    restrictedToEmail: { type: String, default: null, lowercase: true, trim: true },
+    maxQtyPerLine: { type: Number, default: null, min: 1 },
+    source: { type: String, enum: ['admin', 'lead'], default: 'admin', index: true },
   },
   {
     timestamps: true,

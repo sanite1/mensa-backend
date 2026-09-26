@@ -92,5 +92,10 @@ export const validateApplyDiscount = validate({
       'number.min': 'Subtotal must be at least 1 kobo.',
       'any.required': 'Subtotal is required.',
     }),
+    // Optional context so personal codes can be checked at preview time.
+    email: Joi.string().trim().lowercase().email().allow(''),
+    lines: Joi.array()
+      .items(Joi.object({ qty: Joi.number().integer().min(1).required() }).unknown(true))
+      .max(100),
   }),
 })

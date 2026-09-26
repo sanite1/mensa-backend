@@ -1,6 +1,7 @@
 // discount.service.ts — admin CRUD plus apply (code + subtotal to kobo savings), used by /checkout/apply-discount and order initialize.
 // reserveRedemptionByCode atomically increments usedCount under the cap, releaseRedemptionByCode decrements when a reserving order fails or cancels.
 
+import crypto from 'crypto'
 import type { FilterQuery } from 'mongoose'
 import { Types } from 'mongoose'
 
@@ -10,6 +11,7 @@ import { ApiResponse } from '../errors/apiResponse'
 import type {
   ApplyDiscountResult,
   CreateDiscountInput,
+  DiscountContext,
   DiscountDocument,
   IDiscount,
   ListDiscountsQuery,
@@ -60,11 +62,74 @@ function assertDiscountUsable(discount: IDiscount): void {
   }
 }
 
+/** Rules that depend on who is buying and what. Admin codes have none,
+ *  personal lead codes must match the checkout email and cap line
+ *  quantities so bulk buyers cannot ride a consumer offer. */
+export function assertDiscountEligible(discount: IDiscount, ctx: DiscountContext): void {
+  if (discount.restrictedToEmail) {
+    const email = ctx.email?.trim().toLowerCase()
+    if (!email) {
+      throw new ApiError(422, 'Enter the email this code was sent to, then apply it again.')
+    }
+    if (email !== discount.restrictedToEmail) {
+      throw new ApiError(409, 'This code was sent to a different email address.')
+    }
+  }
+  if (discount.maxQtyPerLine != null && ctx.lines) {
+    const cap = discount.maxQtyPerLine
+    if (ctx.lines.some((l) => l.qty > cap)) {
+      throw new ApiError(
+        409,
+        `This code works for up to ${cap} units of any one product. Reduce the quantity to use it.`,
+      )
+    }
+  }
+}
+
+// Unambiguous alphabet, no 0/O or 1/I, so codes survive being read aloud.
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+
+function randomCodeSuffix(length: number): string {
+  const bytes = crypto.randomBytes(length)
+  let out = ''
+  for (let i = 0; i < length; i += 1) out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length]
+  return out
+}
+
+/** Mint a single use, email locked 10 percent code for a quiz lead. */
+export const createLeadDiscountService = async (
+  email: string,
+  validDays: number,
+): Promise<DiscountDocument> => {
+  const restrictedToEmail = email.trim().toLowerCase()
+  const expiresAt = new Date(Date.now() + validDays * 24 * 60 * 60 * 1000)
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const code = `MENSA-${randomCodeSuffix(6)}`
+    const existing = await Discount.findOne({ code }).lean()
+    if (existing) continue
+    return (await Discount.create({
+      code,
+      type: 'percent',
+      value: 10,
+      expiresAt,
+      maxUses: 1,
+      usedCount: 0,
+      isActive: true,
+      description: `Starter set finder code for ${restrictedToEmail}`,
+      restrictedToEmail,
+      maxQtyPerLine: 19,
+      source: 'lead',
+    })) as DiscountDocument
+  }
+  throw new ApiError(500, 'Could not generate a unique discount code.')
+}
+
 // ─── Public: apply a code to a subtotal (preview) ────────────────
 
 export const applyDiscountService = async (
   code: string,
   subtotalKobo: number,
+  ctx: DiscountContext = {},
 ): Promise<ApiResponse<ApplyDiscountResult>> => {
   if (subtotalKobo <= 0) throw new ApiError(400, 'No items in cart.')
   const normalised = normaliseCode(code)
@@ -75,6 +140,7 @@ export const applyDiscountService = async (
     throw new ApiError(404, `We could not find a code matching "${normalised}".`)
   }
   assertDiscountUsable(discount)
+  assertDiscountEligible(discount, ctx)
 
   const discountKobo = computeDiscountKobo(discount, subtotalKobo)
 

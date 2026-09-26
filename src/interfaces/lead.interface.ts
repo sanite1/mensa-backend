@@ -20,6 +20,18 @@ export interface IStarterSetLead {
   contactedAt?: Date | null
   /** How many times this email completed the quiz. */
   retakes: number
+  /** Why the set fits, as shown on the result page. Reused in the email. */
+  resultReason?: string
+  /** Storefront path of the recommended product, e.g. /shop/reusable-pads. */
+  shopPath?: string
+  /** Personal 10 percent code minted on first submission. Null on legacy leads. */
+  discountCode: string | null
+  discountIssuedAt: Date | null
+  discountExpiresAt: Date | null
+  discountRedeemedAt: Date | null
+  discountRedeemedOrderNumber: string | null
+  /** When the day 5 nudge went out, so it never goes twice. */
+  reminderSentAt: Date | null
   createdAt: Date
   updatedAt: Date
 }
@@ -34,16 +46,29 @@ export interface SubmitLeadInput {
   email: string
   answers: Record<string, string>
   resultCode: LeadResultCode
+  reason?: string
+  shopPath?: string
 }
+
+/** Code filter for the admin list. expired = unredeemed and past expiry. */
+export type LeadCodeFilter = 'redeemed' | 'unredeemed' | 'expired'
 
 export interface AdminListLeadsQuery {
   status?: LeadStatus
+  code?: LeadCodeFilter
   q?: string
   page?: number
   pageSize?: number
 }
 
+export interface LeadCodeStats {
+  issued: number
+  redeemed: number
+  expired: number
+}
+
 export interface AdminListLeadsResult {
   items: StarterSetLeadDocument[]
+  codeStats: LeadCodeStats
   pagination: { page: number; pageSize: number; total: number; totalPages: number }
 }

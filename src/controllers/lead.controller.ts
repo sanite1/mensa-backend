@@ -1,5 +1,6 @@
 // lead controller — thin request handlers, delegates to lead.service
 import { sendResponse } from '../helpers/sendResponse'
+import { ApiError } from '../errors/apiError'
 import * as leadService from '../services/lead.service'
 import type { ExpressFunction } from '../interfaces/express.interface'
 import type { AdminListLeadsQuery, LeadStatus, SubmitLeadInput } from '../interfaces/lead.interface'
@@ -9,6 +10,19 @@ export const submitLead: ExpressFunction<SubmitLeadInput> = async (req, res, nex
   try {
     const response = await leadService.submitLeadService(req.body)
     sendResponse(res, response)
+  } catch (error) {
+    next(error)
+  }
+}
+
+/* ── GET /cron/lead-reminders ── (Vercel Cron, bearer CRON_SECRET) */
+export const runLeadCodeReminders: ExpressFunction = async (req, res, next) => {
+  try {
+    const secret = process.env.CRON_SECRET
+    if (!secret) throw new ApiError(503, 'Cron is not configured.')
+    const header = req.headers.authorization ?? ''
+    if (header !== `Bearer ${secret}`) throw new ApiError(401, 'Not allowed.')
+    sendResponse(res, await leadService.sendLeadCodeRemindersService())
   } catch (error) {
     next(error)
   }

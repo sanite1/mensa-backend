@@ -19,8 +19,20 @@ export interface IDiscount {
   isActive: boolean
   /** Free-form admin label e.g. "Influencer · Tolu · Q2 2026". Not shown to customers. */
   description: string
+  /** Personal codes only work when the checkout email matches. Null = anyone. */
+  restrictedToEmail: string | null
+  /** Personal codes refuse any single product line above this many units. Null = no cap. */
+  maxQtyPerLine: number | null
+  /** admin: created in the dashboard. lead: minted for a starter set finder lead. */
+  source: 'admin' | 'lead'
   createdAt: Date
   updatedAt: Date
+}
+
+/** What the customer is about to buy, used to check personal code rules. */
+export interface DiscountContext {
+  email?: string
+  lines?: Array<{ qty: number }>
 }
 
 export type DiscountDocument = Document<Types.ObjectId, unknown, IDiscount> & IDiscount

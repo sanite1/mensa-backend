@@ -8,13 +8,17 @@ import type {
 } from '../interfaces/discount.interface'
 
 /* ── POST /checkout/apply-discount ── (public) */
-export const applyDiscount: ExpressFunction<{ code: string; subtotal: number }> = async (
-  req,
-  res,
-  next,
-) => {
+export const applyDiscount: ExpressFunction<{
+  code: string
+  subtotal: number
+  email?: string
+  lines?: Array<{ qty: number }>
+}> = async (req, res, next) => {
   try {
-    const response = await service.applyDiscountService(req.body.code, req.body.subtotal)
+    const response = await service.applyDiscountService(req.body.code, req.body.subtotal, {
+      email: req.body.email,
+      lines: req.body.lines,
+    })
     sendResponse(res, response)
   } catch (error) {
     next(error)

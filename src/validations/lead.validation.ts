@@ -24,6 +24,12 @@ export const validateSubmitLead = validate({
       .max(8)
       .required(),
     resultCode: resultCode.required(),
+    // The result page's reasoning and product link, reused in the code email.
+    reason: Joi.string().trim().max(2000).allow(''),
+    shopPath: Joi.string()
+      .trim()
+      .pattern(/^\/shop\/[a-z0-9-]+$/)
+      .allow(''),
   }),
 })
 
@@ -31,6 +37,7 @@ export const validateSubmitLead = validate({
 export const validateAdminListLeads = validate({
   query: Joi.object({
     status: Joi.string().valid('new', 'contacted', 'ordered'),
+    code: Joi.string().valid('redeemed', 'unredeemed', 'expired'),
     q: Joi.string().trim().max(120).allow(''),
     page: Joi.number().integer().min(1).default(1),
     pageSize: Joi.number().integer().min(1).max(200).default(24),

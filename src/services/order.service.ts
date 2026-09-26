@@ -13,6 +13,7 @@ import { paystackService } from './external/paystack.service'
 import { sendboxService } from './external/sendbox.service'
 import { sendMail } from './nodemailer/mail.service'
 import {
+  assertDiscountEligible,
   computeDiscountKobo,
   findUsableDiscountByCode,
   releaseRedemptionByCode,
@@ -24,7 +25,7 @@ import {
   resolveActivePartnerByCode,
   reverseCommissionForOrder,
 } from './partner.service'
-import { markLeadOrderedService } from './lead.service'
+import { markLeadCodeRedeemedService, markLeadOrderedService } from './lead.service'
 import { formatEtaDays, quoteShippingOptions } from './shipping.service'
 import { logger } from '../config/logger'
 import type {
@@ -254,6 +255,9 @@ export const initializeCheckoutService = async (
   if (rawCode) {
     const discount = await findUsableDiscountByCode(rawCode)
     if (discount) {
+      // Personal codes: the checkout email must match and no line may
+      // exceed the unit cap. Same rules the preview already applied.
+      assertDiscountEligible(discount, { email: input.customerEmail, lines: input.lines })
       discountKobo = computeDiscountKobo(discount, subtotal)
       appliedDiscountCode = discount.code
     }
@@ -550,6 +554,9 @@ export const markOrderPaidService = async (
   // bookkeeping failure must never block the webhook.
   try {
     await markLeadOrderedService(order.customerEmail, order.orderNumber)
+    if (order.discountCode) {
+      await markLeadCodeRedeemedService(order.discountCode, order.orderNumber)
+    }
   } catch (err) {
     logger.error(`[markOrderPaid] lead conversion update failed for ${reference}`, err)
   }

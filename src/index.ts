@@ -23,6 +23,7 @@ import partnerRouter from './routes/partner.routes'
 import newsletterRouter from './routes/newsletter.routes'
 import leadRouter from './routes/lead.routes'
 import invoiceRouter from './routes/invoice.routes'
+import cronRouter from './routes/cron.routes'
 import contactRouter from './routes/contact.routes'
 import contentRouter from './routes/content.routes'
 import b2bRouter from './routes/b2b/b2b.routes'
@@ -90,6 +91,7 @@ app.use('/api/v1/partners', partnerRouter)
 app.use('/api/v1/newsletter', newsletterRouter)
 app.use('/api/v1/leads', leadRouter)
 app.use('/api/v1/invoices', invoiceRouter)
+app.use('/api/v1/cron', cronRouter)
 app.use('/api/v1/contact', contactRouter)
 app.use('/api/v1/content', contentRouter)
 app.use('/api/v1/b2b', b2bRouter)
