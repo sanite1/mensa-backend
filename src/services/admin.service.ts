@@ -9,7 +9,7 @@ import { User } from '../models/User'
 import { ApiError } from '../errors/apiError'
 import { ApiResponse } from '../errors/apiResponse'
 import { subscriberCountsService } from './newsletter.service'
-import type { OrderDocument } from '../interfaces/order.interface'
+import type { IOrder, OrderDocument } from '../interfaces/order.interface'
 import type { IUser, UserRole } from '../interfaces/user.interface'
 
 export interface AdminLowStockEntry {
@@ -277,27 +277,43 @@ export const adminReportsService = async (
   })
 }
 
-// ── Customers (admin): list + detail ─────────────────────────────
+// ── Customers (admin): derived from orders, merged with accounts ──
+// A customer is anyone who has placed an order, plus anyone who signed up.
+// Guests are keyed by email, account holders by their user id, and the
+// detail route accepts either. Reading straight from orders means past
+// orders count immediately with no seeding step to drift.
 
 const DEFAULT_PAGE_SIZE = 20
 const MAX_PAGE_SIZE = 100
 
+export type CustomerKind = 'account' | 'guest'
+
 export interface AdminCustomerListItem {
+  /** User id for account holders, email for guests. */
   _id: string
   name: string
   email: string
   phone: string
-  role: UserRole
+  /** Delivery state from the latest order, null for accounts with no orders. */
+  state: string | null
+  hasAccount: boolean
+  userId: string | null
+  role: UserRole | null
   emailVerified: boolean
-  createdAt: Date
-  lastLoginAt: Date | null
   orderCount: number
+  paidOrderCount: number
   lifetimeValueKobo: number
+  firstOrderAt: Date | null
+  lastOrderAt: Date | null
+  /** Account creation date, or the first order for guests. */
+  createdAt: Date
 }
 
 export interface AdminCustomersListParams {
   q?: string
+  /** Kept for older clients, ignored. */
   role?: UserRole
+  kind?: CustomerKind
   page?: number
   pageSize?: number
 }
@@ -309,85 +325,125 @@ export interface AdminCustomersListResult {
 
 const escapeRegex = (input: string): string => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
+interface OrderGroup {
+  _id: string
+  name: string
+  phone: string
+  state: string
+  orderCount: number
+  paidOrderCount: number
+  lifetimeValueKobo: number
+  firstOrderAt: Date
+  lastOrderAt: Date
+}
+
+/** One row per buyer email with the latest name, phone and state. */
+async function groupOrdersByEmail(): Promise<OrderGroup[]> {
+  return Order.aggregate<OrderGroup>([
+    { $sort: { createdAt: -1 } },
+    {
+      $group: {
+        _id: '$customerEmail',
+        name: { $first: '$address.fullName' },
+        phone: { $first: '$customerPhone' },
+        state: { $first: '$address.state' },
+        orderCount: { $sum: 1 },
+        paidOrderCount: { $sum: { $cond: [{ $eq: ['$payment.status', 'paid'] }, 1, 0] } },
+        lifetimeValueKobo: {
+          $sum: { $cond: [{ $eq: ['$payment.status', 'paid'] }, '$totals.total', 0] },
+        },
+        firstOrderAt: { $min: '$createdAt' },
+        lastOrderAt: { $max: '$createdAt' },
+      },
+    },
+  ])
+}
+
+/** Every customer, buyers first by most recent order, then accounts that
+ *  have never ordered by sign up date. Filtered and paged in memory, the
+ *  whole set is a few hundred rows at most for a long while. */
+async function buildCustomerList(): Promise<AdminCustomerListItem[]> {
+  const [groups, users] = await Promise.all([
+    groupOrdersByEmail(),
+    User.find({ role: { $ne: 'admin' } }).lean(),
+  ])
+  const userByEmail = new Map(users.map((u) => [u.email.toLowerCase(), u]))
+  const seen = new Set<string>()
+
+  const items: AdminCustomerListItem[] = groups.map((g) => {
+    const email = g._id.toLowerCase()
+    seen.add(email)
+    const user = userByEmail.get(email)
+    return {
+      _id: user ? user._id.toString() : email,
+      name: user?.name || g.name || email,
+      email,
+      phone: user?.phone || g.phone || '',
+      state: g.state || null,
+      hasAccount: !!user,
+      userId: user ? user._id.toString() : null,
+      role: user?.role ?? null,
+      emailVerified: user?.emailVerified ?? false,
+      orderCount: g.orderCount,
+      paidOrderCount: g.paidOrderCount,
+      lifetimeValueKobo: g.lifetimeValueKobo,
+      firstOrderAt: g.firstOrderAt,
+      lastOrderAt: g.lastOrderAt,
+      createdAt: user?.createdAt ?? g.firstOrderAt,
+    }
+  })
+
+  for (const user of users) {
+    const email = user.email.toLowerCase()
+    if (seen.has(email)) continue
+    items.push({
+      _id: user._id.toString(),
+      name: user.name,
+      email,
+      phone: user.phone ?? '',
+      state: null,
+      hasAccount: true,
+      userId: user._id.toString(),
+      role: user.role,
+      emailVerified: user.emailVerified,
+      orderCount: 0,
+      paidOrderCount: 0,
+      lifetimeValueKobo: 0,
+      firstOrderAt: null,
+      lastOrderAt: null,
+      createdAt: user.createdAt,
+    })
+  }
+
+  items.sort((a, b) => {
+    const aTime = (a.lastOrderAt ?? a.createdAt).getTime()
+    const bTime = (b.lastOrderAt ?? b.createdAt).getTime()
+    return bTime - aTime
+  })
+  return items
+}
+
 export const adminListCustomersService = async (
   params: AdminCustomersListParams,
 ): Promise<ApiResponse<AdminCustomersListResult>> => {
   const page = Math.max(1, params.page ?? 1)
   const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, params.pageSize ?? DEFAULT_PAGE_SIZE))
 
-  // Staff accounts are not customers, exclude admins unless explicitly asked for.
-  const filter: FilterQuery<IUser> = params.role
-    ? { role: params.role }
-    : { role: { $ne: 'admin' } }
+  let items = await buildCustomerList()
+  if (params.kind === 'account') items = items.filter((c) => c.hasAccount)
+  if (params.kind === 'guest') items = items.filter((c) => !c.hasAccount)
 
   const q = params.q?.trim()
   if (q) {
     const rx = new RegExp(escapeRegex(q), 'i')
-    filter.$or = [{ name: rx }, { email: rx }, { phone: rx }]
+    items = items.filter((c) => rx.test(c.name) || rx.test(c.email) || rx.test(c.phone))
   }
 
-  const [users, total] = await Promise.all([
-    User.find(filter)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
-      .lean(),
-    User.countDocuments(filter),
-  ])
-
-  // Aggregate lifetime value + order count per user in a single round trip.
-  const userIds = users.map((u) => u._id)
-  const orderAgg = await Order.aggregate<{
-    _id: Types.ObjectId
-    orderCount: number
-    lifetimeValueKobo: number
-  }>([
-    {
-      $match: {
-        userId: { $in: userIds },
-        'payment.status': 'paid',
-      },
-    },
-    {
-      $group: {
-        _id: '$userId',
-        orderCount: { $sum: 1 },
-        lifetimeValueKobo: { $sum: '$totals.total' },
-      },
-    },
-  ])
-  const aggMap = new Map<string, { orderCount: number; lifetimeValueKobo: number }>()
-  for (const row of orderAgg) {
-    aggMap.set(row._id.toString(), {
-      orderCount: row.orderCount,
-      lifetimeValueKobo: row.lifetimeValueKobo,
-    })
-  }
-
-  const items: AdminCustomerListItem[] = users.map((u) => {
-    const agg = aggMap.get(u._id.toString())
-    return {
-      _id: u._id.toString(),
-      name: u.name,
-      email: u.email,
-      phone: u.phone,
-      role: u.role,
-      emailVerified: u.emailVerified,
-      createdAt: u.createdAt,
-      lastLoginAt: u.lastLoginAt ?? null,
-      orderCount: agg?.orderCount ?? 0,
-      lifetimeValueKobo: agg?.lifetimeValueKobo ?? 0,
-    }
-  })
-
+  const total = items.length
+  const start = (page - 1) * pageSize
   return new ApiResponse(200, 'OK.', {
-    items,
-    pagination: {
-      page,
-      pageSize,
-      total,
-      totalPages: Math.max(1, Math.ceil(total / pageSize)),
-    },
+    items: items.slice(start, start + pageSize),
+    pagination: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) },
   })
 }
 
@@ -405,58 +461,65 @@ export interface AdminCustomerDetail {
   name: string
   email: string
   phone: string
-  role: UserRole
+  hasAccount: boolean
+  role: UserRole | null
   emailVerified: boolean
   addresses: IUser['addresses']
+  /** Where the most recent order went, handy for guests with no saved addresses. */
+  lastOrderAddress: OrderDocument['address'] | null
   createdAt: Date
   lastLoginAt: Date | null
   orderCount: number
+  paidOrderCount: number
   lifetimeValueKobo: number
   orders: AdminCustomerDetailOrder[]
 }
 
 export const adminGetCustomerService = async (
-  customerId: string,
+  key: string,
 ): Promise<ApiResponse<{ customer: AdminCustomerDetail }>> => {
-  if (!Types.ObjectId.isValid(customerId)) {
-    throw new ApiError(404, 'Customer not found.')
-  }
+  // Account holders arrive as a user id, guests as an email.
+  const user = Types.ObjectId.isValid(key)
+    ? await User.findById(key).lean()
+    : await User.findOne({ email: key.toLowerCase() }).lean()
+  const email = (user?.email ?? key).toLowerCase()
 
-  const user = await User.findById(customerId).lean()
-  if (!user) throw new ApiError(404, 'Customer not found.')
-
-  const ordersRaw = (await Order.find({ userId: user._id })
+  const orderFilter: FilterQuery<IOrder> = user
+    ? { $or: [{ customerEmail: email }, { userId: user._id }] }
+    : { customerEmail: email }
+  const ordersRaw = (await Order.find(orderFilter)
     .sort({ createdAt: -1 })
     .lean()) as unknown as (OrderDocument & { _id: { toString(): string } })[]
 
-  const orders: AdminCustomerDetailOrder[] = ordersRaw.map((o) => ({
-    _id: o._id.toString(),
-    orderNumber: o.orderNumber,
-    totalKobo: o.totals.total,
-    paymentStatus: o.payment.status,
-    fulfilmentStatus: o.fulfilment.status,
-    createdAt: o.createdAt,
-  }))
+  if (!user && ordersRaw.length === 0) throw new ApiError(404, 'Customer not found.')
 
-  const lifetimeValueKobo = ordersRaw
-    .filter((o) => o.payment.status === 'paid')
-    .reduce((sum, o) => sum + o.totals.total, 0)
-  const orderCount = ordersRaw.filter((o) => o.payment.status === 'paid').length
+  const latest = ordersRaw[0] ?? null
+  const paid = ordersRaw.filter((o) => o.payment.status === 'paid')
 
   return new ApiResponse(200, 'OK.', {
     customer: {
-      _id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      emailVerified: user.emailVerified,
-      addresses: user.addresses,
-      createdAt: user.createdAt,
-      lastLoginAt: user.lastLoginAt ?? null,
-      orderCount,
-      lifetimeValueKobo,
-      orders,
+      _id: user ? user._id.toString() : email,
+      name: user?.name || latest?.address.fullName || email,
+      email,
+      phone: user?.phone || latest?.customerPhone || '',
+      hasAccount: !!user,
+      role: user?.role ?? null,
+      emailVerified: user?.emailVerified ?? false,
+      addresses: user?.addresses ?? [],
+      lastOrderAddress: latest?.address ?? null,
+      createdAt: user?.createdAt ?? latest?.createdAt ?? new Date(),
+      lastLoginAt: user?.lastLoginAt ?? null,
+      orderCount: ordersRaw.length,
+      paidOrderCount: paid.length,
+      lifetimeValueKobo: paid.reduce((sum, o) => sum + o.totals.total, 0),
+      orders: ordersRaw.map((o) => ({
+        _id: o._id.toString(),
+        orderNumber: o.orderNumber,
+        totalKobo: o.totals.total,
+        paymentStatus: o.payment.status,
+        fulfilmentStatus: o.fulfilment.status,
+        createdAt: o.createdAt,
+      })),
     },
   })
 }
